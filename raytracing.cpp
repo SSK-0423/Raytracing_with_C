@@ -27,7 +27,35 @@ void drawDot(
 
 bool isIntersectingRay(Ray *ray, Sphere *sphere)
 {
-    return false;
+    // 判別式 d = b^2 - 4 * a * c
+
+    // |d|^2
+    float a = ray->direction.dot(ray->direction);
+    // 2{d・(s - Pc)}
+    float b = 2 * ray->direction.dot(ray->startPoint - sphere->center);
+    // |s|^2 + |Pc|^2 - r^2
+    float c =
+        ray->startPoint.dot(ray->startPoint) +
+        sphere->center.dot(sphere->center) - sphere->radius * sphere->radius;
+
+    // 判別式計算
+    float d = calcDiscriminant(a, b, c);
+
+    // 交点なし
+    if (d < 0)
+    {
+        return false;
+    }
+    // 1つ以上の交点
+    else
+    {
+        float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
+        float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
+        if (t1 > 0 || t2 > 0)
+            return true;
+        else
+            return false;
+    }
 }
 
 // スクリーン座標からワールド座標へ変換
@@ -80,7 +108,7 @@ int main()
             if (isIntersectingRay(&ray, &sphere))
                 drawDot(&bitmap, x, y, Color(0xff, 0x00, 0x00));
             else
-                drawDot(&bitmap, x, y, Color(0x00, 0xff, 0x00));
+                drawDot(&bitmap, x, y, Color(0x00, 0xff, 0x8f));
         }
     }
 
