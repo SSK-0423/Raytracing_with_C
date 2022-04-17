@@ -21,8 +21,9 @@ int main()
     BitMapData bitmap(1024, 768, 3);
 
     // ピクセルデータ確保
-    bitmap.pixelsData = (Pixel *)malloc(
-        sizeof(Pixel) * bitmap.width * bitmap.height);
+    bitmap.pixelsData = (unsigned char*)malloc(
+        sizeof(unsigned char) * 
+        bitmap.width * bitmap.height * bitmap.channel);
     if (bitmap.pixelsData == NULL)
     {
         printf("malloc error\n");
@@ -30,7 +31,8 @@ int main()
     }
 
     // ビットマップデータの背景を白にする
-    memset(bitmap.pixelsData, 0xFF, bitmap.width * bitmap.height);
+    memset(bitmap.pixelsData, 0xFF, 
+        bitmap.width * bitmap.height * bitmap.channel);
 
     // (10,20)に点を描画
     drawDot(bitmap, 10, 20, Color(0x00, 0xff, 0xff));
