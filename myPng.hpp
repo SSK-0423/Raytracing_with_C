@@ -4,6 +4,12 @@
 
 #include "png.h"
 
+enum COLORTYPE
+{
+    COLOR_RGB = 3,
+    COLOR_RGBA,
+};
+
 // 色
 struct Color
 {
