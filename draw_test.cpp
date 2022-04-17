@@ -6,18 +6,18 @@
 
 // 点の描画
 void drawDot(
-    BitMapData bitmap, unsigned int x, unsigned int y, Color color)
+    BitMapData* bitmap, unsigned int x, unsigned int y, Color color)
 {
     // 指定座標のピクセル取得
-    unsigned char* pixel = bitmap.pixelsData +
-                          y * bitmap.width * bitmap.channel +
-                          x * bitmap.channel;
+    unsigned char* pixel = bitmap->pixelsData +
+                          y * bitmap->width * bitmap->channel +
+                          x * bitmap->channel;
     // 色変更
-    if(bitmap.channel == COLOR_RGB){
+    if(bitmap->channel == COLOR_RGB){
         pixel[0] = color.r;
         pixel[1] = color.g;
         pixel[2] = color.b;
-    }else if(bitmap.channel == COLOR_RGBA){
+    }else if(bitmap->channel == COLOR_RGBA){
         pixel[0] = color.r;
         pixel[1] = color.g;
         pixel[2] = color.b;
@@ -45,7 +45,7 @@ int main()
            bitmap.width * bitmap.height * bitmap.channel);
 
     // (10,20)に点を描画
-    drawDot(bitmap, 10, 20, Color(0x00, 0xff, 0xff));
+    drawDot(&bitmap, 10, 20, Color(0x00, 0xff, 0xff));
 
     // PNGに変換してファイル保存
     if(pngFileEncodeWrite(&bitmap,"output.png") == -1){

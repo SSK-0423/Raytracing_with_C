@@ -34,14 +34,28 @@ struct Pixel
 // ビットマップデータ
 struct BitMapData
 {
-    unsigned int width;        // 幅
-    unsigned int height;       // 高さ
-    unsigned char *pixelsData; // ピクセルデータ
-    unsigned char channel;     // チャネル
+    unsigned int width;                  // 幅
+    unsigned int height;                 // 高さ
+    unsigned char *pixelsData = nullptr; // ピクセルデータ
+    unsigned char channel;               // チャネル
 
     BitMapData() {}
     BitMapData(unsigned int w, unsigned int h, unsigned int ch)
         : width(w), height(h), channel(ch) {}
+
+    // ピクセルデータ確保
+    int allocation()
+    {
+        pixelsData = (unsigned char *)malloc(
+            sizeof(unsigned char) * width * height * channel);
+        if (pixelsData == NULL)
+        {
+            printf("malloc error\n");
+            return -1;
+        }
+
+        return 0;   // 成功
+    }
 };
 
 int pngFileReadDecode(BitMapData *, const char *);
