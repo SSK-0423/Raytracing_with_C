@@ -33,10 +33,9 @@ bool isIntersectingRay(Ray *ray, Sphere *sphere)
     float a = ray->direction.dot(ray->direction);
     // 2{d・(s - Pc)}
     float b = 2 * ray->direction.dot(ray->startPoint - sphere->center);
-    // |s|^2 + |Pc|^2 - r^2
-    float c =
-        ray->startPoint.dot(ray->startPoint) +
-        sphere->center.dot(sphere->center) - sphere->radius * sphere->radius;
+    // |s - Pc|^2 - r^2 
+    Vector3 tmp = ray->startPoint - sphere->center; // |s - Pc|^2
+    float c = tmp.dot(tmp) - sphere->radius * sphere->radius;
 
     // 判別式計算
     float d = calcDiscriminant(a, b, c);
