@@ -168,7 +168,7 @@ int main()
                 // 視線逆ベクトルと正反射ベクトルの内積もしくは，
                 // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
                 // 鏡面反射は「0」になる
-                if (inverseEyeDir.dot(specularReflection) < 0)// || normal.dot(incident) < 0)
+                if (inverseEyeDir.dot(specularReflection) < 0 || normal.dot(incident) < 0)
                     specular = 0;
 
                 // 環境光
