@@ -1,5 +1,4 @@
 #include "mymath.hpp"
-#include <math.h>
 
 float calcDiscriminant(float a, float b, float c)
 {
@@ -15,4 +14,10 @@ float calcQuadraticFormula(float a, float b, float c, SOLUTION solution)
         ret = (-b - sqrt(calcDiscriminant(a, b, c))) / 2 * a;
 
     return ret;
+}
+
+// 乗算
+Vector3 operator*(float n, Vector3 vec)
+{
+    return Vector3(n * vec.x, n * vec.y, n * vec.z);
 }

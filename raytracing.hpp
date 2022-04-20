@@ -22,3 +22,9 @@ struct Camera
 {
     Vector3 position; // 視点
 };
+
+// 点光源
+struct PointLight
+{
+    Vector3 position;   // 光源位置
+};

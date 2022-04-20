@@ -1,4 +1,5 @@
 /*  数学系処理のヘッダ */
+#include <math.h>
 
 // 解の公式の解を指定する
 enum SOLUTION
@@ -22,6 +23,13 @@ struct Vector3
     Vector3(float x, float y, float z)
         : x(x), y(y), z(z) {}
 
+    // 左オペランドがVector3ではないので，フレンド関数として定義
+    friend Vector3 operator*(float n, Vector3 vec);
+
+    Vector3 operator+(Vector3 vec)
+    {
+        return Vector3(vec.x + x, vec.y + y, vec.z + z);
+    }
     Vector3 operator-(Vector3 vec)
     {
         Vector3 ret(vec.x - x, vec.y - y, vec.z - z);
@@ -32,5 +40,15 @@ struct Vector3
     float dot(Vector3 vec)
     {
         return x * vec.x + y * vec.y + z * vec.z;
+    }
+
+    // 正規化
+    Vector3 normalize()
+    {
+        float mag = sqrt(x * x + y * y + z * z);
+        x = x / mag;
+        y = y / mag;
+        z = z / mag;
+        return Vector3(x / mag, y / mag, z / mag);
     }
 };

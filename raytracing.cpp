@@ -25,7 +25,7 @@ void drawDot(
     }
 }
 
-bool isIntersectingRay(Ray *ray, Sphere *sphere)
+bool isIntersectingRay(Ray *ray, Sphere *sphere, Vector3 *intersectionPoint)
 {
     // 判別式 d = b^2 - 4 * a * c
 
@@ -33,7 +33,7 @@ bool isIntersectingRay(Ray *ray, Sphere *sphere)
     float a = ray->direction.dot(ray->direction);
     // 2{d・(s - Pc)}
     float b = 2 * ray->direction.dot(ray->startPoint - sphere->center);
-    // |s - Pc|^2 - r^2 
+    // |s - Pc|^2 - r^2
     Vector3 tmp = ray->startPoint - sphere->center; // |s - Pc|^2
     float c = tmp.dot(tmp) - sphere->radius * sphere->radius;
 
@@ -51,7 +51,13 @@ bool isIntersectingRay(Ray *ray, Sphere *sphere)
         float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
         float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
         if (t1 > 0 || t2 > 0)
+        {
+            // 交点は値が小さい方を採用して計算
+            if (intersectionPoint != nullptr)
+                *intersectionPoint = (t1 < t2) ? ray->startPoint + t1 * ray->direction : ray->startPoint + t2 * ray->direction;
+
             return true;
+        }
         else
             return false;
     }
@@ -104,14 +110,15 @@ int main()
             // レイを生成
             Ray ray = createRay(camera, x, y, bitmap.width, bitmap.height);
 
-            if (isIntersectingRay(&ray, &sphere))
+            // レイと球が交差するか判定+交点があれば計算
+            if (isIntersectingRay(&ray, &sphere, nullptr))
+            {
                 drawDot(&bitmap, x, y, Color(0xff, 0x00, 0x00));
+            }
             else
                 drawDot(&bitmap, x, y, Color(0x00, 0xff, 0x8f));
         }
     }
-
-    // 物体表面の光源の性質を使ってその点での色を決定する
 
     // PNGに変換してファイル保存
     if (pngFileEncodeWrite(&bitmap, "raytracing.png") == -1)
