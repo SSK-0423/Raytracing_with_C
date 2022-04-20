@@ -206,3 +206,27 @@ int freeBitmapData(BitMapData *bitmap)
     }
     return 0;
 }
+
+// 点の描画
+void drawDot(
+    BitMapData *bitmap, unsigned int x, unsigned int y, Color color)
+{
+    // 指定座標のピクセル取得
+    unsigned char *pixel = bitmap->pixelsData +
+                           y * bitmap->width * bitmap->channel +
+                           x * bitmap->channel;
+    // 色変更
+    if (bitmap->channel == COLOR_RGB)
+    {
+        pixel[0] = color.r;
+        pixel[1] = color.g;
+        pixel[2] = color.b;
+    }
+    else if (bitmap->channel == COLOR_RGBA)
+    {
+        pixel[0] = color.r;
+        pixel[1] = color.g;
+        pixel[2] = color.b;
+        pixel[3] = color.a;
+    }
+}

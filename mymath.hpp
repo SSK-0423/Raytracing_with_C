@@ -1,5 +1,7 @@
 /*  数学系処理のヘッダ */
-#include <math.h>
+
+// 演算子の個数を数える
+static unsigned long long operationCount = 0;
 
 // 解の公式の解を指定する
 enum SOLUTION
@@ -14,6 +16,15 @@ float calcDiscriminant(float, float, float);
 // 解の公式を計算
 float calcQuadraticFormula(float, float, float, SOLUTION);
 
+// 平方根
+float mySqrt(float);
+
+// べき乗
+float myPow(float, int);
+
+// 絶対値
+float myAbsf(float);
+
 // 3次元ベクトル
 struct Vector3
 {
@@ -24,14 +35,20 @@ struct Vector3
         : x(x), y(y), z(z) {}
 
     // 左オペランドがVector3ではないので，フレンド関数として定義
+    // 3個
     friend Vector3 operator*(float n, Vector3 vec);
 
+    // 3個
     Vector3 operator+(Vector3 vec)
     {
+        operationCount += 3;
         return Vector3(vec.x + x, vec.y + y, vec.z + z);
     }
+
+    // 3個
     Vector3 operator-(Vector3 vec)
     {
+        operationCount += 3;
         Vector3 ret(x - vec.y, y - vec.y, z - vec.z);
         return ret;
     }
@@ -39,13 +56,15 @@ struct Vector3
     // 内積
     float dot(Vector3 vec)
     {
+        operationCount += 5;
         return x * vec.x + y * vec.y + z * vec.z;
     }
 
     // 正規化
     Vector3 normalize()
     {
-        float mag = sqrt(x * x + y * y + z * z);
+        float mag = mySqrt(x * x + y * y + z * z);
+        operationCount += 3;
         return Vector3(x / mag, y / mag, z / mag);
     }
 };

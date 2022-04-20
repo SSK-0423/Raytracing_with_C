@@ -1,0 +1,1 @@
+echo "g++ myPng.cpp mymath.cpp log.cpp raytracing_lib.cpp raytracing_shading.cpp -lpng"

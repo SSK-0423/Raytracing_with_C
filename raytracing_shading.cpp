@@ -1,31 +1,7 @@
-#include "raytracing.hpp"
+#include "raytracing_lib.hpp"
 #include "log.hpp"
 
-// 点の描画
-// 点の描画
-void drawDot(
-    BitMapData *bitmap, unsigned int x, unsigned int y, Color color)
-{
-    // 指定座標のピクセル取得
-    unsigned char *pixel = bitmap->pixelsData +
-                           y * bitmap->width * bitmap->channel +
-                           x * bitmap->channel;
-    // 色変更
-    if (bitmap->channel == COLOR_RGB)
-    {
-        pixel[0] = color.r;
-        pixel[1] = color.g;
-        pixel[2] = color.b;
-    }
-    else if (bitmap->channel == COLOR_RGBA)
-    {
-        pixel[0] = color.r;
-        pixel[1] = color.g;
-        pixel[2] = color.b;
-        pixel[3] = color.a;
-    }
-}
-
+// レイとの交差判定
 bool isIntersectingRay(Ray *ray, Sphere *sphere, Vector3 *intersectionPoint)
 {
     // 判別式 d = b^2 - 4 * a * c
@@ -68,27 +44,6 @@ bool isIntersectingRay(Ray *ray, Sphere *sphere, Vector3 *intersectionPoint)
         else
             return false;
     }
-}
-
-// スクリーン座標からワールド座標へ変換
-Vector3 screenToWorld(
-    float x, float y, unsigned int width, unsigned int height)
-{
-    float lx = 2 * x / (width - 1) - 1.f;
-    float ly = -2 * y / (height - 1) + 1.f;
-
-    return Vector3(lx, ly, 0);
-}
-
-// 視点からスクリーン座標へのRayを生成
-Ray createRay(Camera camera, float x, float y, float width, float height)
-{
-    Ray ray;
-    ray.startPoint = camera.position;
-    // 視点位置から点(x,y)に向かう半直線
-    ray.direction = screenToWorld(x, y, width, height) - ray.startPoint;
-
-    return ray;
 }
 
 int main()
@@ -160,11 +115,11 @@ int main()
 
                 // スペキュラー
                 float ks = 0.3; // 鏡面反射係数
-                float a = 8;    // 光尺度
+                float a = 4;    // 光尺度
 
                 // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
                 Vector3 inverseEyeDir = ((-1) * ray.direction).normalize();
-                float specular = ks * Ii * pow(inverseEyeDir.dot(specularReflection), a);
+                float specular = ks * Ii * myPow(inverseEyeDir.dot(specularReflection), a);
                 // 視線逆ベクトルと正反射ベクトルの内積もしくは，
                 // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
                 // 鏡面反射は「0」になる
@@ -189,6 +144,8 @@ int main()
                 drawDot(&bitmap, x, y, Color(0x00, 0xff, 0x8f));
         }
     }
+
+    recordLine("演算子の個数%ld\n",operationCount);
 
     // PNGに変換してファイル保存
     if (pngFileEncodeWrite(&bitmap, "raytracing_shading.png") == -1)

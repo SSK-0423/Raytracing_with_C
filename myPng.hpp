@@ -62,5 +62,7 @@ struct BitMapData
 int pngFileReadDecode(BitMapData *, const char *);
 int pngFileEncodeWrite(BitMapData *, const char *);
 int freeBitmapData(BitMapData *);
+void drawDot(
+    BitMapData *bitmap, unsigned int x, unsigned int y, Color color);
 
 #define SIGNATURE_NUM 8

@@ -1,29 +1,4 @@
-#include "raytracing.hpp"
-
-// 点の描画
-// 点の描画
-void drawDot(
-    BitMapData *bitmap, unsigned int x, unsigned int y, Color color)
-{
-    // 指定座標のピクセル取得
-    unsigned char *pixel = bitmap->pixelsData +
-                           y * bitmap->width * bitmap->channel +
-                           x * bitmap->channel;
-    // 色変更
-    if (bitmap->channel == COLOR_RGB)
-    {
-        pixel[0] = color.r;
-        pixel[1] = color.g;
-        pixel[2] = color.b;
-    }
-    else if (bitmap->channel == COLOR_RGBA)
-    {
-        pixel[0] = color.r;
-        pixel[1] = color.g;
-        pixel[2] = color.b;
-        pixel[3] = color.a;
-    }
-}
+#include "raytracing_lib.hpp"
 
 bool isIntersectingRay(Ray *ray, Sphere *sphere, Vector3 *intersectionPoint)
 {
@@ -61,26 +36,6 @@ bool isIntersectingRay(Ray *ray, Sphere *sphere, Vector3 *intersectionPoint)
         else
             return false;
     }
-}
-
-// スクリーン座標からワールド座標へ変換
-Vector3 screenToWorld(
-    float x, float y, unsigned int width, unsigned int height)
-{
-    float lx = 2 * x / (width - 1) - 1.f;
-    float ly = -2 * y / (height - 1) + 1.f;
-
-    return Vector3(lx, ly, 0);
-}
-
-// 視点からスクリーン座標へのRayを生成
-Ray createRay(Camera camera, float x, float y, float width, float height)
-{
-    Ray ray;
-    ray.startPoint = camera.position;
-    ray.direction = screenToWorld(x, y, width, height) - ray.startPoint;
-
-    return ray;
 }
 
 int main()
