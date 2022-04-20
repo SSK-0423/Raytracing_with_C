@@ -1,4 +1,5 @@
 #include "raytracing.hpp"
+#include "log.hpp"
 
 // 点の描画
 // 点の描画
@@ -50,11 +51,12 @@ bool isIntersectingRay(Ray *ray, Sphere *sphere, Vector3 *intersectionPoint)
     {
         float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
         float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
+        recordLine("交点1:%f, 交点2:%f\n", t1, t2);
         if (t1 > 0 || t2 > 0)
         {
             // 交点は値が小さい方を採用
             if (intersectionPoint != nullptr)
-                *intersectionPoint = (t1 < t2) ? ray->startPoint + t1 * ray->direction : ray->startPoint + t2 * ray->direction;
+                *intersectionPoint = (t1 > t2) ? ray->startPoint + t1 * ray->direction : ray->startPoint + t2 * ray->direction;
             return true;
         }
         else
@@ -84,6 +86,10 @@ Ray createRay(Camera camera, float x, float y, float width, float height)
 
 int main()
 {
+    // ログファイル初期化
+    if (initLogFile("raytracing_shading.txt") == 1)
+        return -1;
+
     // ビットマップデータ
     BitMapData bitmap(512, 512, 3);
     if (bitmap.allocation() == -1)
@@ -110,6 +116,9 @@ int main()
         {
             // レイを生成
             Ray ray = createRay(camera, x, y, bitmap.width, bitmap.height);
+            recordLine("視点:(%f,%f,%f) 視線:(%f,%f,%f)\n",
+                       ray.startPoint.x, ray.startPoint.y, ray.startPoint.z,
+                       ray.direction.x, ray.direction.y, ray.direction.z);
 
             // レイと球の交点
             Vector3 interPoint;
@@ -118,15 +127,22 @@ int main()
             if (isIntersectingRay(&ray, &sphere, &interPoint))
             {
                 // 物体表面の光源の性質を使ってその点での色を決定する(シェーディング)
+                recordLine("交点の位置ベクトル (%f,%f,%f)\n",
+                           interPoint.x, interPoint.y, interPoint.z);
+
                 // 球の法線ベクトルを求める
                 Vector3 normal = (interPoint - sphere.center).normalize();
+                recordLine("球の法線ベクトル (%f,%f,%f)\n", normal.x, normal.y, normal.z);
+
                 // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
                 Vector3 incident = (pointLight.position - interPoint).normalize();
+                recordLine("入射ベクトル (%f,%f,%f)\n", incident.x, incident.y, incident.z);
 
                 // ディフューズ(拡散反射光) 光源強度=1,拡散反射係数=1
                 float diffuse = normal.dot(incident);
 
-                drawDot(&bitmap, x, y, Color(diffuse, diffuse * 0xff, diffuse));
+                //drawDot(&bitmap, x, y, Color(diffuse, diffuse * 0xff, diffuse));
+                drawDot(&bitmap, x, y, Color(0, 128, 255));
             }
             else
                 drawDot(&bitmap, x, y, Color(0x00, 0xff, 0x8f));
@@ -141,6 +157,8 @@ int main()
     }
 
     freeBitmapData(&bitmap);
+
+    finalLogFile();
 
     return 0;
 }
