@@ -22,6 +22,7 @@ struct Color
         unsigned char red, unsigned char green,
         unsigned char blue, unsigned char alpha = 1)
         : r(red), g(green), b(blue), a(alpha) {}
+    Color() {}
 };
 
 // ピクセル構造体
@@ -54,7 +55,7 @@ struct BitMapData
             return -1;
         }
 
-        return 0;   // 成功
+        return 0; // 成功
     }
 };
 

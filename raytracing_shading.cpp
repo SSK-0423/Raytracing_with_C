@@ -51,7 +51,7 @@ bool isIntersectingRay(Ray *ray, Sphere *sphere, Vector3 *intersectionPoint)
     {
         float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
         float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
-        recordLine("t1:%lf, t2:%lf\n", t1, t2);
+        // recordLine("t1:%lf, t2:%lf\n", t1, t2);
         if (t1 > 0 || t2 > 0)
         {
             // 交点は値が小さい方を採用
@@ -60,8 +60,8 @@ bool isIntersectingRay(Ray *ray, Sphere *sphere, Vector3 *intersectionPoint)
                 *intersectionPoint = (t1 < t2) ? ray->startPoint + t1 * ray->direction : ray->startPoint + t2 * ray->direction;
                 Vector3 v1 = ray->startPoint + t1 * ray->direction;
                 Vector3 v2 = ray->startPoint + t2 * ray->direction;
-                recordLine("交点1座標: (%4.2lf,%4.2lf,%4.2lf)\n", v1.x, v1.y, v1.z);
-                recordLine("交点2座標: (%4.2lf,%4.2lf,%4.2lf)\n", v2.x, v2.y, v2.z);
+                // recordLine("交点1座標: (%4.2lf,%4.2lf,%4.2lf)\n", v1.x, v1.y, v1.z);
+                // recordLine("交点2座標: (%4.2lf,%4.2lf,%4.2lf)\n", v2.x, v2.y, v2.z);
             }
             return true;
         }
@@ -123,9 +123,9 @@ int main()
         {
             // レイを生成
             Ray ray = createRay(camera, x, y, bitmap.width, bitmap.height);
-            recordLine("視点:(%4.2f,%4.2f,%4.2f) 視線:(%4.2f,%4.2f,%4.2f),注視点:(%d,%d)\n",
-                       ray.startPoint.x, ray.startPoint.y, ray.startPoint.z,
-                       ray.direction.x, ray.direction.y, ray.direction.z, x, y);
+            // recordLine("視点:(%4.2f,%4.2f,%4.2f) 視線:(%4.2f,%4.2f,%4.2f),注視点:(%d,%d)\n",
+            //            ray.startPoint.x, ray.startPoint.y, ray.startPoint.z,
+            //            ray.direction.x, ray.direction.y, ray.direction.z, x, y);
 
             // レイと球の交点
             Vector3 interPoint;
@@ -134,24 +134,56 @@ int main()
             if (isIntersectingRay(&ray, &sphere, &interPoint))
             {
                 // 物体表面の光源の性質を使ってその点での色を決定する(シェーディング)
-                recordLine("交点の位置ベクトル (%4.2f,%4.2f,%4.2f)\n",
-                           interPoint.x, interPoint.y, interPoint.z);
+                // recordLine("交点の位置ベクトル (%4.2f,%4.2f,%4.2f)\n",
+                //            interPoint.x, interPoint.y, interPoint.z);
 
                 // 球の法線ベクトルを求める
                 Vector3 normal = (interPoint - sphere.center).normalize();
-                recordLine("球の法線ベクトル (%4.2f,%4.2f,%4.2f)\n", normal.x, normal.y, normal.z);
+                // recordLine("球の法線ベクトル (%4.2f,%4.2f,%4.2f)\n", normal.x, normal.y, normal.z);
 
                 // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
                 Vector3 incident = (pointLight.position - interPoint).normalize();
-                recordLine("入射ベクトル (%4.2f,%4.2f,%4.2f)\n", incident.x, incident.y, incident.z);
+                // recordLine("入射ベクトル (%4.2f,%4.2f,%4.2f)\n", incident.x, incident.y, incident.z);
 
-                // ディフューズ(拡散反射光) 光源強度=1,拡散反射係数=1
-                float diffuse = normal.dot(incident);
+                // 正反射ベクトル計算 r = 2(n・l)n - l
+                Vector3 specularReflection = 2 * normal.dot(incident) * normal - incident;
+
+                // 光源強度
+                float Ii = 1.f;
+
+                // ディフューズ(拡散反射光)
+                float kd = 0.69; // 拡散反射係数
+                float diffuse = Ii * kd * normal.dot(incident);
                 if (diffuse < 0)
                     diffuse = 0;
-                recordLine("ディフューズ%f\n", diffuse);
-                
-                drawDot(&bitmap, x, y, Color(diffuse * 0xff, diffuse * 0xff, diffuse * 0xff));
+                // recordLine("ディフューズ%f\n", diffuse);
+
+                // スペキュラー
+                float ks = 0.3; // 鏡面反射係数
+                float a = 8;    // 光尺度
+
+                // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
+                Vector3 inverseEyeDir = ((-1) * ray.direction).normalize();
+                float specular = ks * Ii * pow(inverseEyeDir.dot(specularReflection), a);
+                // 視線逆ベクトルと正反射ベクトルの内積もしくは，
+                // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
+                // 鏡面反射は「0」になる
+                if (inverseEyeDir.dot(specularReflection) < 0)// || normal.dot(incident) < 0)
+                    specular = 0;
+
+                // 環境光
+                float Ia = 0.1f;  // 環境光の強度
+                float ka = 0.01f; // 環境光反射係数
+                float ambient = Ia * ka;
+
+                float I = diffuse + specular + ambient;
+
+                Color color;
+                color.r = I * 0xff;
+                color.g = I * 0xff;
+                color.b = I * 0xff;
+
+                drawDot(&bitmap, x, y, color);
             }
             else
                 drawDot(&bitmap, x, y, Color(0x00, 0xff, 0x8f));
