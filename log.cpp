@@ -1,8 +1,7 @@
 #include "log.hpp"
-#include <stdio.h>
 #include <stdarg.h>
 
-FILE *logFile;
+static FILE *logFile;
 
 int initLogFile(const char *filename)
 {
@@ -20,7 +19,7 @@ void recordLine(const char *format, ...)
 {
     va_list va;
     va_start(va, format);
-    fprintf(logFile, format, va);
+    vfprintf(logFile, format, va);
     va_end(va);
 }
 

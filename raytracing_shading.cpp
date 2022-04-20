@@ -51,12 +51,18 @@ bool isIntersectingRay(Ray *ray, Sphere *sphere, Vector3 *intersectionPoint)
     {
         float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
         float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
-        recordLine("交点1:%f, 交点2:%f\n", t1, t2);
+        recordLine("t1:%lf, t2:%lf\n", t1, t2);
         if (t1 > 0 || t2 > 0)
         {
             // 交点は値が小さい方を採用
             if (intersectionPoint != nullptr)
-                *intersectionPoint = (t1 > t2) ? ray->startPoint + t1 * ray->direction : ray->startPoint + t2 * ray->direction;
+            {
+                *intersectionPoint = (t1 < t2) ? ray->startPoint + t1 * ray->direction : ray->startPoint + t2 * ray->direction;
+                Vector3 v1 = ray->startPoint + t1 * ray->direction;
+                Vector3 v2 = ray->startPoint + t2 * ray->direction;
+                recordLine("交点1座標: (%4.2lf,%4.2lf,%4.2lf)\n", v1.x, v1.y, v1.z);
+                recordLine("交点2座標: (%4.2lf,%4.2lf,%4.2lf)\n", v2.x, v2.y, v2.z);
+            }
             return true;
         }
         else
@@ -79,6 +85,7 @@ Ray createRay(Camera camera, float x, float y, float width, float height)
 {
     Ray ray;
     ray.startPoint = camera.position;
+    // 視点位置から点(x,y)に向かう半直線
     ray.direction = screenToWorld(x, y, width, height) - ray.startPoint;
 
     return ray;
@@ -116,9 +123,9 @@ int main()
         {
             // レイを生成
             Ray ray = createRay(camera, x, y, bitmap.width, bitmap.height);
-            recordLine("視点:(%f,%f,%f) 視線:(%f,%f,%f)\n",
+            recordLine("視点:(%4.2f,%4.2f,%4.2f) 視線:(%4.2f,%4.2f,%4.2f),注視点:(%d,%d)\n",
                        ray.startPoint.x, ray.startPoint.y, ray.startPoint.z,
-                       ray.direction.x, ray.direction.y, ray.direction.z);
+                       ray.direction.x, ray.direction.y, ray.direction.z, x, y);
 
             // レイと球の交点
             Vector3 interPoint;
@@ -127,22 +134,24 @@ int main()
             if (isIntersectingRay(&ray, &sphere, &interPoint))
             {
                 // 物体表面の光源の性質を使ってその点での色を決定する(シェーディング)
-                recordLine("交点の位置ベクトル (%f,%f,%f)\n",
+                recordLine("交点の位置ベクトル (%4.2f,%4.2f,%4.2f)\n",
                            interPoint.x, interPoint.y, interPoint.z);
 
                 // 球の法線ベクトルを求める
                 Vector3 normal = (interPoint - sphere.center).normalize();
-                recordLine("球の法線ベクトル (%f,%f,%f)\n", normal.x, normal.y, normal.z);
+                recordLine("球の法線ベクトル (%4.2f,%4.2f,%4.2f)\n", normal.x, normal.y, normal.z);
 
                 // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
                 Vector3 incident = (pointLight.position - interPoint).normalize();
-                recordLine("入射ベクトル (%f,%f,%f)\n", incident.x, incident.y, incident.z);
+                recordLine("入射ベクトル (%4.2f,%4.2f,%4.2f)\n", incident.x, incident.y, incident.z);
 
                 // ディフューズ(拡散反射光) 光源強度=1,拡散反射係数=1
                 float diffuse = normal.dot(incident);
-
-                //drawDot(&bitmap, x, y, Color(diffuse, diffuse * 0xff, diffuse));
-                drawDot(&bitmap, x, y, Color(0, 128, 255));
+                if (diffuse < 0)
+                    diffuse = 0;
+                recordLine("ディフューズ%f\n", diffuse);
+                
+                drawDot(&bitmap, x, y, Color(diffuse * 0xff, diffuse * 0xff, diffuse * 0xff));
             }
             else
                 drawDot(&bitmap, x, y, Color(0x00, 0xff, 0x8f));

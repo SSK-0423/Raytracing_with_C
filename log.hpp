@@ -1,4 +1,5 @@
 /* デバッグ用ログファイル出力 */
+#include <stdio.h>
 
 // ログファイル生成
 int initLogFile(const char*);

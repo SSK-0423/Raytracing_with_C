@@ -32,7 +32,7 @@ struct Vector3
     }
     Vector3 operator-(Vector3 vec)
     {
-        Vector3 ret(vec.x - x, vec.y - y, vec.z - z);
+        Vector3 ret(x - vec.y, y - vec.y, z - vec.z);
         return ret;
     }
 
@@ -46,9 +46,6 @@ struct Vector3
     Vector3 normalize()
     {
         float mag = sqrt(x * x + y * y + z * z);
-        x = x / mag;
-        y = y / mag;
-        z = z / mag;
         return Vector3(x / mag, y / mag, z / mag);
     }
 };
