@@ -60,6 +60,17 @@ struct Vector3
         return x * vec.x + y * vec.y + z * vec.z;
     }
 
+    // 外積
+    Vector3 cross(Vector3 vec)
+    {
+        Vector3 ret;
+        ret.x = y * vec.z - z * vec.y;
+        ret.y = z * vec.x - x * vec.z;
+        ret.z = x * vec.y - y * vec.x;
+
+        return ret;
+    }
+
     // 正規化
     Vector3 normalize()
     {
