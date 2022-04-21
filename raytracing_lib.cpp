@@ -47,7 +47,7 @@ IntersectionPoint *Sphere::isIntersectionRay(Ray *ray)
         float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
         float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
         // recordLine("t1:%lf, t2:%lf\n", t1, t2);
-        if (t1 > 0 || t2 > 0)
+        if (t1 >= 0 || t2 >= 0)
         {
             // 交点は値が小さい方を採用
             IntersectionPoint *point = new IntersectionPoint();
@@ -73,7 +73,7 @@ IntersectionPoint *Plane::isIntersectionRay(Ray *ray)
 
     float t = (position - ray->startPoint).dot(normal) / dn;
     // 交点あり
-    if (t > 0)
+    if (t >= 0)
     {
         IntersectionPoint *point = new IntersectionPoint();
         point->position = ray->startPoint + t * ray->direction;
@@ -206,9 +206,15 @@ Color phongShading(
 // 先頭の要素（ポインタ）の位置を指しているのでダブルポインタ
 IntersectionResult *intersectionWithAll(Shape **geometry, int geometryNum, Ray *ray)
 {
+    return intersectionWithAll(geometry, geometryNum, ray, FLT_MAX, false);
+}
+
+IntersectionResult *intersectionWithAll(
+    Shape **geometry, int geometryNum, Ray *ray, float maxDistance, bool exitOnceFound)
+{
     IntersectionResult *result = new IntersectionResult();
 
-    float minDistance = 10e6; // レイの視点との最小距離
+    float minDistance = FLT_MAX; // レイの視点との最小距離
 
     // 全オブジェクトの交点を調べ，レイの視点に最も近い交点を決定する
     for (size_t idx = 0; idx < geometryNum; idx++)
@@ -222,6 +228,10 @@ IntersectionResult *intersectionWithAll(Shape **geometry, int geometryNum, Ray *
 
         // レイの始点から交点への距離計算
         float distance = (point->position - ray->startPoint).magnitude();
+
+        // 交差とみなす最大距離を超えた場合はスキップ
+        if (distance > maxDistance)
+            continue;
 
         // 最小距離なら描画点に指定
         if (distance < minDistance)
@@ -240,6 +250,10 @@ IntersectionResult *intersectionWithAll(Shape **geometry, int geometryNum, Ray *
             result->intersectionPoint = new IntersectionPoint();
             memmove(result->intersectionPoint, point, sizeof(IntersectionPoint));
         }
+
+        // 1度の交差で計算をやめる場合
+        if (exitOnceFound)
+            break;
     }
 
     return result;

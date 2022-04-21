@@ -50,16 +50,41 @@ int main()
             // レイを生成
             Ray ray = createRay(camera, x, y, bitmap.width, bitmap.height);
 
+            // 全物体との交差判定
             IntersectionResult *intersectionResult =
                 intersectionWithAll(geometry, GEOMETRY_NUM, &ray);
 
             if (intersectionResult->intersectionPoint != nullptr)
             {
-                // 交点情報表示
-                Color color = phongShading(
-                    *intersectionResult->intersectionPoint, ray,
-                    pointLight, intersectionResult->shape->material);
-                drawDot(&bitmap, x, y, color);
+                // シャドウレイによる交差判定
+                IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
+
+                // 入射ベクトル 視点からみた光源
+                Vector3 incident =
+                    (pointLight.position - intersectionPoint->position).normalize();
+
+                // シャドウレイ
+                Ray shadowRay;
+                // 交差点を始点とするとその物体自身と交差したと判定されるため，
+                // 入射ベクトル(単位ベクトル)側に少しだけずらす
+                shadowRay.startPoint = intersectionPoint->position + 1 / 32 * incident;
+                shadowRay.direction = incident;
+
+                // 光源までの距離
+                float lightDistance = (pointLight.position - shadowRay.startPoint).magnitude();
+
+                // シャドウレイとオブジェクトとの交差判定
+                IntersectionResult *shadowResult =
+                    intersectionWithAll(geometry, GEOMETRY_NUM, &shadowRay, lightDistance, true);
+
+                // 点と光源の間に何もなかったら一回目の交差の色描画
+                if (shadowResult->intersectionPoint != nullptr)
+                {
+                    Color color = phongShading(
+                        *intersectionResult->intersectionPoint, ray,
+                        pointLight, intersectionResult->shape->material);
+                    drawDot(&bitmap, x, y, color);
+                }
             }
             else
             {

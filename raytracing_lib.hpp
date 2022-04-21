@@ -1,5 +1,6 @@
 #include <memory.h>
 #include <stdio.h>
+#include <float.h>
 #include "myPng.hpp"
 #include "mymath.hpp"
 #include "log.hpp"
@@ -158,6 +159,10 @@ struct IntersectionResult
 
 // すべてのオブジェクトと交差判定
 IntersectionResult *intersectionWithAll(Shape **geometry, int geometryNum, Ray *ray);
+
+// すべてのオブジェクトと交差判定（シャドウレイ用）
+IntersectionResult *intersectionWithAll(
+    Shape **geometry, int geometryNum, Ray *ray, float maxDistance, bool exitOnceFound);
 
 // レイトレーシング
 void RayTrace(BitMapData *bitmap, Shape *geometry, Camera *camera, PointLight *pointLight);
