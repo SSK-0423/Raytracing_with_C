@@ -158,5 +158,8 @@ Color phongShading(
 Color phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight, Material material);
 
+// すべてのオブジェクトと交差判定
+IntersectionPoint* intersectionWithAll(Shape* geometry, Ray* ray);
+
 // レイトレーシング
 void RayTrace(BitMapData* bitmap,Shape* geometry, Camera* camera, PointLight* pointLight);

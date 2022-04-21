@@ -220,3 +220,47 @@ Color phongShading(
 
     return color;
 }
+
+IntersectionPoint *intersectionWithAll(Shape *geometry, Ray *ray)
+{
+    float minDistance = 10e6;                       // レイの視点との最小距離
+    IntersectionPoint *intersectionPoint = nullptr; // レイの始点との最近交点
+    size_t drawIdx = 0;                             // 描画するオブジェクトのインデックス
+
+    // 全オブジェクトの交点を調べ，レイの視点に最も近い交点を決定する
+    for (size_t idx = 0; idx < GEOMETRY_NUM; idx++)
+    {
+        // レイと球が交差するか判定+交点があれば計算
+        IntersectionPoint *point = geometry[idx].isIntersectionRay(ray);
+
+        // 交点ないならスキップ
+        if (point == nullptr)
+            continue;
+
+        // レイの始点から交点への距離計算
+        float distance = (point->position - ray->startPoint).magnitude();
+
+        // 最小距離なら描画点に指定
+        if (distance < minDistance)
+        {
+            // 最小距離更新
+            minDistance = distance;
+
+            // 描画対象オブジェクトのインデックス更新
+            drawIdx = idx;
+
+            // 先に交点が代入されていたらメモリ解放する
+            if (intersectionPoint != nullptr)
+                delete intersectionPoint;
+            // 交点のメモリを確保してpointの中身をコピーする
+            intersectionPoint = new IntersectionPoint();
+            memmove(intersectionPoint, point, sizeof(IntersectionPoint));
+        }
+    }
+
+    return intersectionPoint;
+}
+
+void RayTrace(BitMapData *bitmap, Shape *geometry, Camera *camera, PointLight *pointLight)
+{
+}

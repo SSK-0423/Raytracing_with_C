@@ -67,8 +67,6 @@ int main()
 
                 // レイの始点から交点への距離計算
                 float distance = (point->position - ray.startPoint).magnitude();
-                if (y > bitmap.height / 2)
-                    recordLine("idx = %d object distance = %f\n", idx, distance);
 
                 // 最小距離なら描画点に指定
                 if (distance < minDistance)
