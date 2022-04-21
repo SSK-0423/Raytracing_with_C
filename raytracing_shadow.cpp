@@ -1,6 +1,6 @@
 #include "raytracing_lib.hpp"
 
-#define GEOMETRY_NUM 6
+#define GEOMETRY_NUM 2
 
 int main()
 {
@@ -17,21 +17,24 @@ int main()
     Shape *geometry[GEOMETRY_NUM];
 
     // 球
-    geometry[0] = new Sphere(Vector3(3, 0, 25), 1.f);
-    geometry[1] = new Sphere(Vector3(2, 0, 20), 1.f);
-    geometry[2] = new Sphere(Vector3(1, 0, 15), 1.f);
-    geometry[3] = new Sphere(Vector3(0, 0, 10), 1.f);
-    geometry[4] = new Sphere(Vector3(-1, 0, 5), 1.f);
+    geometry[0] = new Sphere(Vector3(0, 0, 5), 1.f);
+
+
+    // geometry[0] = new Sphere(Vector3(3, 0, 25), 1.f);
+    // geometry[1] = new Sphere(Vector3(2, 0, 20), 1.f);
+    // geometry[2] = new Sphere(Vector3(1, 0, 15), 1.f);
+    // geometry[3] = new Sphere(Vector3(0, 0, 10), 1.f);
+    // geometry[4] = new Sphere(Vector3(-1, 0, 5), 1.f);
 
     // 平面
-    geometry[5] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0));
+    geometry[1] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0));
 
     // マテリアルセット
     geometry[0]->material.diffuse = FColor(0.69f, 0.f, 0.69f);
-    geometry[1]->material.diffuse = FColor(0.f, 0.69f, 0.69f);
-    geometry[2]->material.diffuse = FColor(0.f, 0.f, 0.69f);
-    geometry[3]->material.diffuse = FColor(0.f, 0.69f, 0.f);
-    geometry[4]->material.diffuse = FColor(0.69f, 0.f, 0.f);
+    // geometry[1]->material.diffuse = FColor(0.f, 0.69f, 0.69f);
+    // geometry[2]->material.diffuse = FColor(0.f, 0.f, 0.69f);
+    // geometry[3]->material.diffuse = FColor(0.f, 0.69f, 0.f);
+    // geometry[4]->material.diffuse = FColor(0.69f, 0.f, 0.f);
 
     // 視点の位置を決める
     Camera camera;
@@ -89,9 +92,14 @@ int main()
                 }
                 else
                 {
-                    Color color = phongShading(
+                    FColor luminance = phongShading(
                         *intersectionResult->intersectionPoint, ray,
                         pointLight, intersectionResult->shape->material);
+                    
+                    Color color;
+                    color.r = luminance.r * 0xff;
+                    color.g = luminance.g * 0xff;
+                    color.b = luminance.b * 0xff;
                     drawDot(&bitmap, x, y, color);
                 }
             }

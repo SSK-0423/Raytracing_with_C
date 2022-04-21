@@ -9,8 +9,8 @@
 #define ZBUFFER_MAX 1
 #define ZBUFFER_MIN 0
 
-#define MAX_RECURSIVE_LEVEL 10
-static float EPSILON = 1.f / 512;
+#define MAX_RECURSIVE_LEVEL 2
+static float EPSILON = 1.f / 512.f;
 
 // レイ
 struct Ray

@@ -47,7 +47,7 @@ IntersectionPoint *Sphere::isIntersectionRay(Ray *ray)
         float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
         float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
         // recordLine("t1:%lf, t2:%lf\n", t1, t2);
-        if (t1 > 0 || t2 > 0)
+        if (t1 >= 0 || t2 >= 0)
         {
             // 交点は値が小さい方を採用
             IntersectionPoint *point = new IntersectionPoint();
@@ -73,7 +73,7 @@ IntersectionPoint *Plane::isIntersectionRay(Ray *ray)
 
     float t = (position - ray->startPoint).dot(normal) / dn;
     // 交点あり
-    if (t > 0)
+    if (t >= 0)
     {
         IntersectionPoint *point = new IntersectionPoint();
         point->position = ray->startPoint + t * ray->direction;
@@ -315,7 +315,7 @@ FColor RayTrace(Scene *scene, Ray *ray)
 
 FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
 {
-    recordLine("再帰回数 = %d回目\n", recursiveLevel);
+    // recordLine("再帰回数 = %d回目\n", recursiveLevel);
 
     // 再起回数の上限に達していたら
     if (recursiveLevel > MAX_RECURSIVE_LEVEL)
@@ -331,6 +331,8 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
         if (intersectionResult->intersectionPoint == nullptr)
             return FColor(FLT_MAX, FLT_MAX, FLT_MAX);
 
+        FColor luminance;
+
         // 影付け処理は一番最後?
         if (intersectionResult->intersectionPoint != nullptr)
         {
@@ -339,14 +341,14 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
 
             // 入射ベクトル 視点からみた光源
             Vector3 incident =
-                (scene->pointLight->position - intersectionPoint->position).normalize();
+                (scene->pointLight->position - intersectionPoint->position);
 
             // シャドウレイ
             Ray shadowRay;
             // 交差点を始点とするとその物体自身と交差したと判定されるため，
             // 入射ベクトル(単位ベクトル)側に少しだけずらす
-            shadowRay.startPoint = intersectionPoint->position + EPSILON * incident;
-            shadowRay.direction = incident;
+            shadowRay.startPoint = intersectionPoint->position + EPSILON * incident.normalize();
+            shadowRay.direction = incident.normalize();
 
             // 光源までの距離
             float lightDistance = (scene->pointLight->position - shadowRay.startPoint).magnitude();
@@ -359,11 +361,13 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
             // 光源との間に交点が存在したら
             if (shadowResult->intersectionPoint != nullptr)
             {
-                return FColor(0, 0, 0);
+                luminance = FColor(1.f, 1.f, 1.f);
+                return FColor(0.f, 0.f, 0.f);
             }
         }
+
         // 輝度計算
-        FColor luminance = phongShading(
+        luminance = phongShading(
             *intersectionResult->intersectionPoint, *ray,
             *(scene->pointLight), intersectionResult->shape->material);
 
@@ -396,14 +400,16 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
                 // 次の反射の輝度を取得
                 FColor nextLuminace = RayTraceRecursive(scene, &newRay, recursiveLevel + 1);
                 if (nextLuminace.r == FLT_MAX)
-                    nextLuminace = FColor(0, 0, 0);
+                {
+                    nextLuminace = FColor(1.f, 1.f, 1.f);
+                }
 
                 // 完全鏡面反射光計算
                 FColor reflection = intersectionResult->shape->material.reflection;
                 FColor reflectionLight;
-                reflectionLight.r = reflection.r * luminance.r;
-                reflectionLight.g = reflection.g * luminance.g;
-                reflectionLight.b = reflection.b * luminance.b;
+                reflectionLight.r = reflection.r * nextLuminace.r;
+                reflectionLight.g = reflection.g * nextLuminace.g;
+                reflectionLight.b = reflection.b * nextLuminace.b;
 
                 return reflectionLight;
             }
@@ -411,51 +417,3 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
         return luminance;
     }
 }
-
-/*
-    影付け処理は一番最後?
- */
-// if (intersectionResult->intersectionPoint != nullptr)
-// {
-//     // シャドウレイによる交差判定
-//     IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
-
-//     // 入射ベクトル 視点からみた光源
-//     Vector3 incident =
-//         (scene->pointLight->position - intersectionPoint->position).normalize();
-
-//     // シャドウレイ
-//     Ray shadowRay;
-//     // 交差点を始点とするとその物体自身と交差したと判定されるため，
-//     // 入射ベクトル(単位ベクトル)側に少しだけずらす
-//     shadowRay.startPoint = intersectionPoint->position + EPSILON * incident;
-//     shadowRay.direction = incident;
-
-//     // 光源までの距離
-//     float lightDistance = (scene->pointLight->position - shadowRay.startPoint).magnitude();
-
-//     // シャドウレイとオブジェクトとの交差判定
-//     IntersectionResult *shadowResult =
-//         intersectionWithAll(
-//             scene->geometry, scene->geometryNum, &shadowRay, lightDistance, true);
-
-//     // 点と光源の間に何もなかったら一回目の交差の色描画
-//     if (shadowResult->intersectionPoint != nullptr)
-//     {
-//         return new Color(0, 0, 0);
-//     }
-//     else
-//     {
-//         Color *color = new Color();
-//         *color = phongShading(
-//             *intersectionResult->intersectionPoint, *ray,
-//             *(scene->pointLight), intersectionResult->shape->material);
-//         return color;
-//     }
-// }
-// else
-// {
-//     Color *color = new Color();
-//     *color = scene->gackgroundColor;
-//     return color;
-// }
