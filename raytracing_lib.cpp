@@ -163,9 +163,9 @@ Color phongShading(
 
     // ディフューズ(拡散反射光)
     FColor diffuse;
-    diffuse.r = Ii * material.diffuse.r * normal.dot(incident);
-    diffuse.g = Ii * material.diffuse.g * normal.dot(incident);
-    diffuse.b = Ii * material.diffuse.b * normal.dot(incident);
+    diffuse.r = pointLight.intensity.r * material.diffuse.r * normal.dot(incident);
+    diffuse.g = pointLight.intensity.g * material.diffuse.g * normal.dot(incident);
+    diffuse.b = pointLight.intensity.b * material.diffuse.b * normal.dot(incident);
 
     // スペキュラー
     // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
@@ -174,9 +174,9 @@ Color phongShading(
     float cos_a = myPow(inverseEyeDir.dot(specularReflection), material.shininess);
 
     FColor specular;
-    specular.r = Ii * material.specular.r * cos_a;
-    specular.g = Ii * material.specular.g * cos_a;
-    specular.b = Ii * material.specular.b * cos_a;
+    specular.r = pointLight.intensity.r * material.specular.r * cos_a;
+    specular.g = pointLight.intensity.g * material.specular.g * cos_a;
+    specular.b = pointLight.intensity.b * material.specular.b * cos_a;
 
     // 視線逆ベクトルと正反射ベクトルの内積もしくは，
     // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
