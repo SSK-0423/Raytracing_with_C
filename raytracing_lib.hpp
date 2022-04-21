@@ -9,6 +9,8 @@
 #define ZBUFFER_MAX 1
 #define ZBUFFER_MIN 0
 
+static float EPSILON = 1.f / 512;
+
 // レイ
 struct Ray
 {
@@ -120,10 +122,66 @@ struct Camera
     float near;       // 最近距離
 };
 
+struct Lighting
+{
+    float distance;
+    FColor intensity;
+    Vector3 direction;
+};
+
+struct Light
+{
+    virtual Lighting lightingAt(Vector3 p) = 0;
+};
+
 // 点光源
-struct PointLight
+struct PointLight : Light
 {
     Vector3 position; // 光源位置
+    FColor intensity; // 光源強度
+    PointLight() {}
+    PointLight(Vector3 p, FColor i)
+        : position(p), intensity(i)
+    {
+    }
+
+    Lighting lightingAt(Vector3 p) override
+    {
+        Lighting lighting;
+        lighting.distance = (position - p).magnitude();
+        lighting.direction = (position - p).normalize();
+        // recordLine("lighting direction = (%4.2f, %4.2f, %4.2f)\n",
+        //            lighting.direction.x, lighting.direction.y, lighting.direction.z);
+        lighting.intensity = intensity;
+        // recordLine("position = (%4.2f, %4.2f, %4.2f)\n",
+        //            position.x, position.y, position.z);
+        // recordLine("p = (%4.2f, %4.2f, %4.2f)\n",
+        //            p.x, p.y, p.z);
+
+        return lighting;
+    }
+};
+
+// 平行光源
+struct DirectionalLight : Light
+{
+    Vector3 direction; // 平行光源の方向
+    FColor intensity;  // 光源強度
+    DirectionalLight() {}
+    DirectionalLight(Vector3 d, FColor i)
+        : direction(d), intensity(i)
+    {
+    }
+
+    Lighting lightingAt(Vector3 p) override
+    {
+        Lighting lighting;
+        lighting.distance = FLT_MAX;
+        lighting.direction = ((-1) * direction).normalize();
+        lighting.intensity = intensity;
+
+        return lighting;
+    }
 };
 
 // 視点からスクリーン座標へのRayを生成
@@ -135,6 +193,10 @@ Vector3 screenToWorld(float x, float y, unsigned int width, unsigned int height)
 // フォンシェーディング
 Color phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight);
+
+// フォンシェーディング
+Color phongShading(
+    IntersectionPoint intersectionPoint, Ray ray, Lighting lighting, Material material);
 
 // フォンシェーディング(マテリアル描画)
 Color phongShading(

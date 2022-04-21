@@ -67,7 +67,7 @@ int main()
                 Ray shadowRay;
                 // 交差点を始点とするとその物体自身と交差したと判定されるため，
                 // 入射ベクトル(単位ベクトル)側に少しだけずらす
-                shadowRay.startPoint = intersectionPoint->position + 1 / 32 * incident;
+                shadowRay.startPoint = intersectionPoint->position + EPSILON * incident;
                 shadowRay.direction = incident;
 
                 // 光源までの距離
@@ -79,6 +79,14 @@ int main()
 
                 // 点と光源の間に何もなかったら一回目の交差の色描画
                 if (shadowResult->intersectionPoint != nullptr)
+                {
+                    // 影なのでマテリアルなしのシェーディング
+                    // Color color = phongShading(
+                    //     *intersectionResult->intersectionPoint, shadowRay, pointLight);
+                    // drawDot(&bitmap, x, y, color);
+                    drawDot(&bitmap, x, y, Color(0, 0, 0));
+                }
+                else
                 {
                     Color color = phongShading(
                         *intersectionResult->intersectionPoint, ray,

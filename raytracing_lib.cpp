@@ -47,7 +47,7 @@ IntersectionPoint *Sphere::isIntersectionRay(Ray *ray)
         float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
         float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
         // recordLine("t1:%lf, t2:%lf\n", t1, t2);
-        if (t1 >= 0 || t2 >= 0)
+        if (t1 > 0 || t2 > 0)
         {
             // 交点は値が小さい方を採用
             IntersectionPoint *point = new IntersectionPoint();
@@ -73,7 +73,7 @@ IntersectionPoint *Plane::isIntersectionRay(Ray *ray)
 
     float t = (position - ray->startPoint).dot(normal) / dn;
     // 交点あり
-    if (t >= 0)
+    if (t > 0)
     {
         IntersectionPoint *point = new IntersectionPoint();
         point->position = ray->startPoint + t * ray->direction;
@@ -138,9 +138,9 @@ Color phongShading(
     float I = diffuse + specular + ambient;
 
     Color color;
-    color.r = I * 0x00;
+    color.r = I * 0xff;
     color.g = I * 0xff;
-    color.b = I * 0x80;
+    color.b = I * 0xff;
 
     return color;
 }
@@ -202,6 +202,61 @@ Color phongShading(
     return color;
 }
 
+Color phongShading(
+    IntersectionPoint intersectionPoint, Ray ray, Lighting lighting, Material material)
+{
+        // 法線ベクトル
+    Vector3 normal = intersectionPoint.normal;
+
+    // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
+    Vector3 incident = lighting.direction;
+
+    // 正反射ベクトル計算 r = 2(n・l)n - l
+    Vector3 specularReflection = 2 * normal.dot(incident) * normal - incident;
+
+    // ディフューズ(拡散反射光)
+    FColor diffuse;
+    diffuse.r = lighting.intensity.r * material.diffuse.r * normal.dot(incident);
+    diffuse.g = lighting.intensity.g * material.diffuse.g * normal.dot(incident);
+    diffuse.b = lighting.intensity.b * material.diffuse.b * normal.dot(incident);
+
+    // スペキュラー
+    // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
+    Vector3 inverseEyeDir = ((-1) * ray.direction).normalize();
+    // (cos)^aを計算
+    float cos_a = myPow(inverseEyeDir.dot(specularReflection), material.shininess);
+
+    FColor specular;
+    specular.r = lighting.intensity.r * material.specular.r * cos_a;
+    specular.g = lighting.intensity.g * material.specular.g * cos_a;
+    specular.b = lighting.intensity.b * material.specular.b * cos_a;
+
+    // 視線逆ベクトルと正反射ベクトルの内積もしくは，
+    // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
+    // 鏡面反射は「0」になる
+    if (inverseEyeDir.dot(specularReflection) < 0 || normal.dot(incident) < 0)
+        specular = FColor(0.f, 0.f, 0.f);
+
+    // 環境光
+    float Ia = 0.1f; // 環境光の強度
+    
+    FColor ambient;
+    ambient.r = material.ambient.r * Ia;
+    ambient.g = material.ambient.g * Ia;
+    ambient.b = material.ambient.b * Ia;
+
+    FColor I = diffuse + specular + ambient;
+    I.normalize(); // 必ず実行する
+
+    Color color;
+    color.r = I.r * 0xff;
+    color.g = I.g * 0xff;
+    color.b = I.b * 0xff;
+
+    return color;
+
+}
+
 // 配列の先頭の要素を指すのが配列名
 // 先頭の要素（ポインタ）の位置を指しているのでダブルポインタ
 IntersectionResult *intersectionWithAll(Shape **geometry, int geometryNum, Ray *ray)
@@ -214,11 +269,15 @@ IntersectionResult *intersectionWithAll(
 {
     IntersectionResult *result = new IntersectionResult();
 
-    float minDistance = FLT_MAX; // レイの視点との最小距離
+    float minDistance = FLT_MAX; // レイの始点との最小距離
 
-    // 全オブジェクトの交点を調べ，レイの視点に最も近い交点を決定する
+    // 全オブジェクトの交点を調べ，レイの始点に最も近い交点を決定する
     for (size_t idx = 0; idx < geometryNum; idx++)
     {
+        // 1回交点がみつかったら処理を中止する場合
+        if (exitOnceFound && result->intersectionPoint != nullptr)
+            break;
+
         // レイと球が交差するか判定+交点があれば計算
         IntersectionPoint *point = geometry[idx]->isIntersectionRay(ray);
 
@@ -250,10 +309,6 @@ IntersectionResult *intersectionWithAll(
             result->intersectionPoint = new IntersectionPoint();
             memmove(result->intersectionPoint, point, sizeof(IntersectionPoint));
         }
-
-        // 1度の交差で計算をやめる場合
-        if (exitOnceFound)
-            break;
     }
 
     return result;
