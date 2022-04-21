@@ -71,10 +71,16 @@ struct Vector3
         return ret;
     }
 
+    // 大きさ
+    float magnitude()
+    {
+        return mySqrt(x * x + y * y + z * z);
+    }
+
     // 正規化
     Vector3 normalize()
     {
-        float mag = mySqrt(x * x + y * y + z * z);
+        float mag = magnitude();
         operationCount += 3;
         return Vector3(x / mag, y / mag, z / mag);
     }

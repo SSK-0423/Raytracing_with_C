@@ -20,6 +20,9 @@ struct IntersectionPoint
 {
     Vector3 position; // 交点の位置
     Vector3 normal;   // 交点における法線
+    ~IntersectionPoint(){
+        // recordLine("IntersectionPointのデストラクタが呼ばれました\n");
+    }
 };
 
 // float成分のカラー
@@ -154,3 +157,6 @@ Color phongShading(
 // フォンシェーディング(マテリアル描画)
 Color phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight, Material material);
+
+// レイトレーシング
+void RayTrace(BitMapData* bitmap,Shape* geometry, Camera* camera, PointLight* pointLight);
