@@ -2,9 +2,12 @@
 #include <stdio.h>
 #include "myPng.hpp"
 #include "mymath.hpp"
+#include "log.hpp"
 
+// 使用しない
 #define ZBUFFER_MAX 1
 #define ZBUFFER_MIN 0
+
 // レイ
 struct Ray
 {
@@ -19,10 +22,66 @@ struct IntersectionPoint
     Vector3 normal;   // 交点における法線
 };
 
+// float成分のカラー
+struct FColor
+{
+    float r;
+    float g;
+    float b;
+
+    FColor()
+    {
+    }
+    FColor(float red, float green, float blue)
+        : r(red), g(green), b(blue)
+    {
+    }
+    FColor operator+(FColor color)
+    {
+        operationCount += 3;
+        return FColor(r + color.r, g + color.g, b + color.b);
+    }
+    // 0〜1に正規化
+    void normalize()
+    {
+        if (r < 0.f)
+            r = 0.f;
+        if (g < 0.f)
+            g = 0.f;
+        if (b < 0.f)
+            b = 0.f;
+
+        if (r > 1.f)
+            r = 1.f;
+        if (g > 1.f)
+            g = 1.f;
+        if (b > 1.f)
+            b = 1.f;
+    }
+};
+
+// マテリアル
+struct Material
+{
+    FColor ambient;  // 環境光反射係数
+    FColor diffuse;  // 拡散反射係数
+    FColor specular; // 鏡面反射係数
+    float shininess; // 光尺度
+    Material(FColor a = FColor(0.01f, 0.01f, 0.01f),
+             FColor d = FColor(0.69f, 0.69f, 0.69f),
+             FColor s = FColor(0.30f, 0.30f, 0.30f), float shi = 8.f)
+        : ambient(a), diffuse(d), specular(s), shininess(shi)
+    {
+    }
+};
+
 //
 struct Shape
 {
+    // Rayとの交差判定
     virtual IntersectionPoint *isIntersectionRay(Ray *ray) = 0;
+    // マテリアル
+    Material material;
 };
 
 // 球
@@ -87,3 +146,11 @@ Ray createRay(Camera camera, float x, float y, float width, float height);
 
 // スクリーン座標からワールド座標へ変換
 Vector3 screenToWorld(float x, float y, unsigned int width, unsigned int height);
+
+// フォンシェーディング
+Color phongShading(
+    IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight);
+
+// フォンシェーディング(マテリアル描画)
+Color phongShading(
+    IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight, Material material);

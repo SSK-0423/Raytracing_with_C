@@ -1,5 +1,4 @@
 #include "raytracing_lib.hpp"
-#include "log.hpp"
 
 // スクリーン座標からワールド座標へ変換
 Vector3 screenToWorld(
@@ -53,8 +52,6 @@ IntersectionPoint *Sphere::isIntersectionRay(Ray *ray)
     Vector3 tmp = ray->startPoint - center; // |s - Pc|^2
     float c = tmp.dot(tmp) - myPow(radius, 2);
 
-    recordLine("center = (%4.2f,%4.2f,%4.2f)\n", center.x, center.y, center.z);
-
     // 判別式計算
     float d = calcDiscriminant(a, b, c);
 
@@ -89,15 +86,10 @@ IntersectionPoint *Sphere::isIntersectionRay(Ray *ray)
 IntersectionPoint *Plane::isIntersectionRay(Ray *ray)
 {
     float dn = ray->direction.dot(normal);
-    // recordLine("(d・n) = %f\n",dn);
     // 分母0は交点なし
     if (dn == 0)
         return nullptr;
 
-    // recordLine("s = (%4.2f,%4.2f,%4.2f)\n",
-    //            ray->startPoint.x, ray->startPoint.y, ray->startPoint.z);
-    // recordLine("n = (%4.2f,%4.2f,%4.2f)\n", normal.x, normal.y, normal.z);
-    // recordLine("(s・n) = %f\n", ray->startPoint.dot(normal));
     float t = (position - ray->startPoint).dot(normal) / dn;
     // 交点あり
     if (t > 0)
@@ -119,4 +111,112 @@ Vector3 Plane::calcNormal(Vector3 p1, Vector3 p2, Vector3 p3)
     Vector3 ab = p2 - p1;
     Vector3 ac = p3 - p1;
     return ab.cross(ac).normalize();
+}
+
+// 物体表面の光源の性質を使ってその点での色を決定する(シェーディング)
+Color phongShading(
+    IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight)
+{
+    // 法線ベクトル
+    Vector3 normal = intersectionPoint.normal;
+
+    // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
+    Vector3 incident =
+        (pointLight.position - intersectionPoint.position).normalize();
+
+    // 正反射ベクトル計算 r = 2(n・l)n - l
+    Vector3 specularReflection = 2 * normal.dot(incident) * normal - incident;
+
+    // 光源強度
+    float Ii = 1.f;
+
+    // ディフューズ(拡散反射光)
+    float kd = 0.69; // 拡散反射係数
+    float diffuse = Ii * kd * normal.dot(incident);
+    if (diffuse < 0)
+        diffuse = 0;
+
+    // スペキュラー
+    float ks = 0.3; // 鏡面反射係数
+    float a = 8;    // 光尺度
+
+    // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
+    Vector3 inverseEyeDir = ((-1) * ray.direction).normalize();
+    float specular = ks * Ii * myPow(inverseEyeDir.dot(specularReflection), a);
+    // 視線逆ベクトルと正反射ベクトルの内積もしくは，
+    // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
+    // 鏡面反射は「0」になる
+    if (inverseEyeDir.dot(specularReflection) < 0 || normal.dot(incident) < 0)
+        specular = 0;
+
+    // 環境光
+    float Ia = 0.1f;  // 環境光の強度
+    float ka = 0.01f; // 環境光反射係数
+    float ambient = Ia * ka;
+
+    float I = diffuse + specular + ambient;
+
+    Color color;
+    color.r = I * 0x00;
+    color.g = I * 0xff;
+    color.b = I * 0x80;
+
+    return color;
+}
+
+Color phongShading(
+    IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight, Material material)
+{
+    // 法線ベクトル
+    Vector3 normal = intersectionPoint.normal;
+
+    // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
+    Vector3 incident =
+        (pointLight.position - intersectionPoint.position).normalize();
+
+    // 正反射ベクトル計算 r = 2(n・l)n - l
+    Vector3 specularReflection = 2 * normal.dot(incident) * normal - incident;
+
+    // 光源強度
+    float Ii = 1.f;
+
+    // ディフューズ(拡散反射光)
+    FColor diffuse;
+    diffuse.r = Ii * material.diffuse.r * normal.dot(incident);
+    diffuse.g = Ii * material.diffuse.g * normal.dot(incident);
+    diffuse.b = Ii * material.diffuse.b * normal.dot(incident);
+
+    // スペキュラー
+    // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
+    Vector3 inverseEyeDir = ((-1) * ray.direction).normalize();
+    // (cos)^aを計算
+    float cos_a = myPow(inverseEyeDir.dot(specularReflection), material.shininess);
+
+    FColor specular;
+    specular.r = Ii * material.specular.r * cos_a;
+    specular.g = Ii * material.specular.g * cos_a;
+    specular.b = Ii * material.specular.b * cos_a;
+
+    // 視線逆ベクトルと正反射ベクトルの内積もしくは，
+    // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
+    // 鏡面反射は「0」になる
+    if (inverseEyeDir.dot(specularReflection) < 0 || normal.dot(incident) < 0)
+        specular = FColor(0.f, 0.f, 0.f);
+
+    // 環境光
+    float Ia = 0.1f; // 環境光の強度
+    FColor ambient;
+    ambient.r = material.ambient.r * Ia;
+    ambient.g = material.ambient.g * Ia;
+    ambient.b = material.ambient.b * Ia;
+
+    FColor I = diffuse + specular + ambient;
+    I.normalize(); // 必ず実行する
+
+    Color color;
+    color.r = I.r * 0xff;
+    color.g = I.g * 0xff;
+    color.b = I.b * 0xff;
+
+    return color;
 }

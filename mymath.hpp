@@ -49,7 +49,7 @@ struct Vector3
     Vector3 operator-(Vector3 vec)
     {
         operationCount += 3;
-        Vector3 ret(x - vec.y, y - vec.y, z - vec.z);
+        Vector3 ret(x - vec.x, y - vec.y, z - vec.z);
         return ret;
     }
 

@@ -1,10 +1,6 @@
 #include "raytracing_lib.hpp"
-#include "log.hpp"
 
-#define GEOMETRY_NUM 2
-
-// フォンシェーディング
-Color phongShading(IntersectionPoint *intersectionPoint, Ray *ray, PointLight *pointLight);
+#define GEOMETRY_NUM 6
 
 int main()
 {
@@ -17,24 +13,28 @@ int main()
     if (bitmap.allocation() == -1)
         return -1;
 
-    ZBuffer zbuffer(512, 512);
-
     // 描画オブジェクト
     Shape *geometry[GEOMETRY_NUM];
     // 球
-    geometry[0] = new Sphere(Vector3(0, 0, 5), 1.f);
+    geometry[0] = new Sphere(Vector3(-1, 0, 5), 1.f);
+    geometry[1] = new Sphere(Vector3(0, 0, 10), 1.f);
+    geometry[2] = new Sphere(Vector3(1, 0, 15), 1.f);
+    geometry[3] = new Sphere(Vector3(2, 0, 20), 1.f);
+    geometry[4] = new Sphere(Vector3(3, 0, 25), 1.f);
+
     // 平面
-    geometry[1] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0));
-    // 板
-    // geometry[1] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0)); // 白床
-    // geometry[2] = new Plane(Vector3(0, 0, -1), Vector3(0, 0, 5));   // 白壁
-    // geometry[3] = new Plane(Vector3(-1, 0, 0), Vector3(1, 0, 0));   // 白天井
-    // geometry[4] = new Plane(Vector3(1, 0, 0), Vector3(-1, 0, 0));  // 赤壁
-    // geometry[5] = new Plane(Vector3(-1, 0, 0), Vector3(1, 0, 0));  // 緑壁
+    geometry[5] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0));
+
+    // マテリアルセット
+    geometry[0]->material.diffuse = FColor(0.69f, 0.f, 0.f);
+    geometry[1]->material.diffuse = FColor(0.f, 0.69f, 0.f);
+    geometry[2]->material.diffuse = FColor(0.f, 0.f, 0.69f);
+    geometry[3]->material.diffuse = FColor(0.f, 0.69f, 0.69f);
+    geometry[4]->material.diffuse = FColor(0.69f, 0.f, 0.69f);
 
     // 視点の位置を決める
     Camera camera;
-    camera.position = Vector3(1, 0, -5);
+    camera.position = Vector3(0, 0, -5);
 
     // 点光源の位置を決める
     PointLight pointLight;
@@ -59,7 +59,9 @@ int main()
                 if (intersectionPoint != nullptr)
                 {
                     isHit = true;
-                    Color color = phongShading(intersectionPoint, &ray, &pointLight);
+                    // Color color = phongShading(intersectionPoint, &ray, &pointLight);
+                    Color color = phongShading(
+                        *intersectionPoint, ray, pointLight, geometry[idx]->material);
                     drawDot(&bitmap, x, y, color);
                     break;
                 }
@@ -85,55 +87,4 @@ int main()
     finalLogFile();
 
     return 0;
-}
-
-// 物体表面の光源の性質を使ってその点での色を決定する(シェーディング)
-Color phongShading(
-    IntersectionPoint *intersectionPoint, Ray *ray, PointLight *pointLight)
-{
-    // 法線ベクトル
-    Vector3 normal = intersectionPoint->normal;
-
-    // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
-    Vector3 incident =
-        (pointLight->position - intersectionPoint->position).normalize();
-
-    // 正反射ベクトル計算 r = 2(n・l)n - l
-    Vector3 specularReflection = 2 * normal.dot(incident) * normal - incident;
-
-    // 光源強度
-    float Ii = 1.f;
-
-    // ディフューズ(拡散反射光)
-    float kd = 0.69; // 拡散反射係数
-    float diffuse = Ii * kd * normal.dot(incident);
-    if (diffuse < 0)
-        diffuse = 0;
-
-    // スペキュラー
-    float ks = 0.3; // 鏡面反射係数
-    float a = 8;    // 光尺度
-
-    // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
-    Vector3 inverseEyeDir = ((-1) * ray->direction).normalize();
-    float specular = ks * Ii * myPow(inverseEyeDir.dot(specularReflection), a);
-    // 視線逆ベクトルと正反射ベクトルの内積もしくは，
-    // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
-    // 鏡面反射は「0」になる
-    if (inverseEyeDir.dot(specularReflection) < 0 || normal.dot(incident) < 0)
-        specular = 0;
-
-    // 環境光
-    float Ia = 0.1f;  // 環境光の強度
-    float ka = 0.01f; // 環境光反射係数
-    float ambient = Ia * ka;
-
-    float I = diffuse + specular + ambient;
-
-    Color color;
-    color.r = I * 0x00;
-    color.g = I * 0xff;
-    color.b = I * 0x80;
-
-    return color;
 }
