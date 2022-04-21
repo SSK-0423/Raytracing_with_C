@@ -228,7 +228,7 @@ IntersectionPoint *intersectionWithAll(Shape *geometry, Ray *ray)
     size_t drawIdx = 0;                             // 描画するオブジェクトのインデックス
 
     // 全オブジェクトの交点を調べ，レイの視点に最も近い交点を決定する
-    for (size_t idx = 0; idx < GEOMETRY_NUM; idx++)
+    for (size_t idx = 0; idx < 6; idx++)
     {
         // レイと球が交差するか判定+交点があれば計算
         IntersectionPoint *point = geometry[idx].isIntersectionRay(ray);
