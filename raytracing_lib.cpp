@@ -145,7 +145,7 @@ Color phongShading(
     return color;
 }
 
-Color phongShading(
+FColor phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight, Material material)
 {
     // 法線ベクトル
@@ -194,18 +194,13 @@ Color phongShading(
     FColor I = diffuse + specular + ambient;
     I.normalize(); // 必ず実行する
 
-    Color color;
-    color.r = I.r * 0xff;
-    color.g = I.g * 0xff;
-    color.b = I.b * 0xff;
-
-    return color;
+    return I;
 }
 
 Color phongShading(
     IntersectionPoint intersectionPoint, Ray ray, Lighting lighting, Material material)
 {
-        // 法線ベクトル
+    // 法線ベクトル
     Vector3 normal = intersectionPoint.normal;
 
     // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
@@ -239,7 +234,7 @@ Color phongShading(
 
     // 環境光
     float Ia = 0.1f; // 環境光の強度
-    
+
     FColor ambient;
     ambient.r = material.ambient.r * Ia;
     ambient.g = material.ambient.g * Ia;
@@ -254,7 +249,6 @@ Color phongShading(
     color.b = I.b * 0xff;
 
     return color;
-
 }
 
 // 配列の先頭の要素を指すのが配列名
@@ -314,6 +308,154 @@ IntersectionResult *intersectionWithAll(
     return result;
 }
 
-void RayTrace(BitMapData *bitmap, Shape *geometry, Camera *camera, PointLight *pointLight)
+FColor RayTrace(Scene *scene, Ray *ray)
 {
+    return RayTraceRecursive(scene, ray, 1);
 }
+
+FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
+{
+    recordLine("再帰回数 = %d回目\n", recursiveLevel);
+
+    // 再起回数の上限に達していたら
+    if (recursiveLevel > MAX_RECURSIVE_LEVEL)
+        return FColor(FLT_MAX, FLT_MAX, FLT_MAX);
+
+    // 再帰回数の上限以内なら
+    else
+    {
+        // 全物体との交差判定
+        IntersectionResult *intersectionResult =
+            intersectionWithAll(scene->geometry, scene->geometryNum, ray);
+
+        if (intersectionResult->intersectionPoint == nullptr)
+            return FColor(FLT_MAX, FLT_MAX, FLT_MAX);
+
+        // 影付け処理は一番最後?
+        if (intersectionResult->intersectionPoint != nullptr)
+        {
+            // シャドウレイによる交差判定
+            IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
+
+            // 入射ベクトル 視点からみた光源
+            Vector3 incident =
+                (scene->pointLight->position - intersectionPoint->position).normalize();
+
+            // シャドウレイ
+            Ray shadowRay;
+            // 交差点を始点とするとその物体自身と交差したと判定されるため，
+            // 入射ベクトル(単位ベクトル)側に少しだけずらす
+            shadowRay.startPoint = intersectionPoint->position + EPSILON * incident;
+            shadowRay.direction = incident;
+
+            // 光源までの距離
+            float lightDistance = (scene->pointLight->position - shadowRay.startPoint).magnitude();
+
+            // シャドウレイとオブジェクトとの交差判定
+            IntersectionResult *shadowResult =
+                intersectionWithAll(
+                    scene->geometry, scene->geometryNum, &shadowRay, lightDistance, true);
+
+            // 光源との間に交点が存在したら
+            if (shadowResult->intersectionPoint != nullptr)
+            {
+                return FColor(0, 0, 0);
+            }
+        }
+        // 輝度計算
+        FColor luminance = phongShading(
+            *intersectionResult->intersectionPoint, *ray,
+            *(scene->pointLight), intersectionResult->shape->material);
+
+        // 鏡面反射が有効なら
+        if (intersectionResult->shape->material.useReflection)
+        {
+            // 交点
+            IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
+
+            // 前の視線ベクトルの逆ベクトル
+            Vector3 inverseRayDirection = (-1) * ray->direction;
+
+            // 交点における法線
+            Vector3 normal = intersectionPoint->normal;
+
+            // 視線ベクトルの逆ベクトルと法線ベクトルの内積
+            float dot = inverseRayDirection.dot(normal);
+            if (dot > 0)
+            {
+                // 正反射ベクトル
+                Vector3 newDirection =
+                    (2 * dot * normal - inverseRayDirection).normalize();
+
+                // 交点を視点とする新しいレイを作成
+                Ray newRay;
+                newRay.startPoint =
+                    intersectionResult->intersectionPoint->position + EPSILON * newDirection;
+                newRay.direction = newDirection;
+
+                // 次の反射の輝度を取得
+                FColor nextLuminace = RayTraceRecursive(scene, &newRay, recursiveLevel + 1);
+                if (nextLuminace.r == FLT_MAX)
+                    nextLuminace = FColor(0, 0, 0);
+
+                // 完全鏡面反射光計算
+                FColor reflection = intersectionResult->shape->material.reflection;
+                FColor reflectionLight;
+                reflectionLight.r = reflection.r * luminance.r;
+                reflectionLight.g = reflection.g * luminance.g;
+                reflectionLight.b = reflection.b * luminance.b;
+
+                return reflectionLight;
+            }
+        }
+        return luminance;
+    }
+}
+
+/*
+    影付け処理は一番最後?
+ */
+// if (intersectionResult->intersectionPoint != nullptr)
+// {
+//     // シャドウレイによる交差判定
+//     IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
+
+//     // 入射ベクトル 視点からみた光源
+//     Vector3 incident =
+//         (scene->pointLight->position - intersectionPoint->position).normalize();
+
+//     // シャドウレイ
+//     Ray shadowRay;
+//     // 交差点を始点とするとその物体自身と交差したと判定されるため，
+//     // 入射ベクトル(単位ベクトル)側に少しだけずらす
+//     shadowRay.startPoint = intersectionPoint->position + EPSILON * incident;
+//     shadowRay.direction = incident;
+
+//     // 光源までの距離
+//     float lightDistance = (scene->pointLight->position - shadowRay.startPoint).magnitude();
+
+//     // シャドウレイとオブジェクトとの交差判定
+//     IntersectionResult *shadowResult =
+//         intersectionWithAll(
+//             scene->geometry, scene->geometryNum, &shadowRay, lightDistance, true);
+
+//     // 点と光源の間に何もなかったら一回目の交差の色描画
+//     if (shadowResult->intersectionPoint != nullptr)
+//     {
+//         return new Color(0, 0, 0);
+//     }
+//     else
+//     {
+//         Color *color = new Color();
+//         *color = phongShading(
+//             *intersectionResult->intersectionPoint, *ray,
+//             *(scene->pointLight), intersectionResult->shape->material);
+//         return color;
+//     }
+// }
+// else
+// {
+//     Color *color = new Color();
+//     *color = scene->gackgroundColor;
+//     return color;
+// }

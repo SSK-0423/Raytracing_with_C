@@ -9,6 +9,7 @@
 #define ZBUFFER_MAX 1
 #define ZBUFFER_MIN 0
 
+#define MAX_RECURSIVE_LEVEL 10
 static float EPSILON = 1.f / 512;
 
 // レイ
@@ -74,10 +75,14 @@ struct Material
     FColor diffuse;  // 拡散反射係数
     FColor specular; // 鏡面反射係数
     float shininess; // 光尺度
+
+    bool useReflection; // 完全鏡面反射を使うかどうか
+    FColor reflection;  // 完全鏡面反射係数
     Material(FColor a = FColor(0.01f, 0.01f, 0.01f),
              FColor d = FColor(0.69f, 0.69f, 0.69f),
-             FColor s = FColor(0.30f, 0.30f, 0.30f), float shi = 8.f)
-        : ambient(a), diffuse(d), specular(s), shininess(shi)
+             FColor s = FColor(0.30f, 0.30f, 0.30f), float shi = 8.f,
+             FColor f = FColor(0, 0, 0), bool uf = false)
+        : ambient(a), diffuse(d), specular(s), shininess(shi), reflection(f), useReflection(uf)
     {
     }
 };
@@ -184,6 +189,16 @@ struct DirectionalLight : Light
     }
 };
 
+struct Scene
+{
+    BitMapData *bitmap;
+    Shape **geometry;
+    int geometryNum;
+    Camera *camera;
+    PointLight *pointLight;
+    Color gackgroundColor;
+};
+
 // 視点からスクリーン座標へのRayを生成
 Ray createRay(Camera camera, float x, float y, float width, float height);
 
@@ -194,12 +209,12 @@ Vector3 screenToWorld(float x, float y, unsigned int width, unsigned int height)
 Color phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight);
 
-// フォンシェーディング
+// フォンシェーディング(バグってます)
 Color phongShading(
     IntersectionPoint intersectionPoint, Ray ray, Lighting lighting, Material material);
 
 // フォンシェーディング(マテリアル描画)
-Color phongShading(
+FColor phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight, Material material);
 
 // 交差判定の結果
@@ -227,4 +242,7 @@ IntersectionResult *intersectionWithAll(
     Shape **geometry, int geometryNum, Ray *ray, float maxDistance, bool exitOnceFound);
 
 // レイトレーシング
-void RayTrace(BitMapData *bitmap, Shape *geometry, Camera *camera, PointLight *pointLight);
+FColor RayTrace(Scene *scene, Ray *ray);
+
+// レイトレーシングの再帰呼び出し
+FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel);
