@@ -21,25 +21,6 @@ Ray createRay(Camera camera, float x, float y, float width, float height)
     return ray;
 }
 
-void drawDotWithZBuffer(
-    BitMapData *bitmap, unsigned int x, unsigned int y, Color color,
-    ZBuffer *zbuffer, unsigned char z)
-{
-    unsigned char *zbuf = zbuffer->zbuff + y * zbuffer->width + x;
-
-    // Zバッファの最大値より大きいものはZバッファの最大値とする
-    if (z > ZBUFFER_MAX)
-    {
-        z = ZBUFFER_MAX;
-    }
-    // 既存のZバッファより小さければ描画
-    if (*zbuf >= z)
-    {
-        drawDot(bitmap, x, y, color); // 描画
-        *zbuf = z;                    // Zバッファ更新
-    }
-}
-
 IntersectionPoint *Sphere::isIntersectionRay(Ray *ray)
 {
     // 判別式 d = b^2 - 4 * a * c
@@ -221,17 +202,19 @@ Color phongShading(
     return color;
 }
 
-IntersectionPoint *intersectionWithAll(Shape *geometry, Ray *ray)
+// 配列の先頭の要素を指すのが配列名
+// 先頭の要素（ポインタ）の位置を指しているのでダブルポインタ
+IntersectionResult *intersectionWithAll(Shape **geometry, int geometryNum, Ray *ray)
 {
-    float minDistance = 10e6;                       // レイの視点との最小距離
-    IntersectionPoint *intersectionPoint = nullptr; // レイの始点との最近交点
-    size_t drawIdx = 0;                             // 描画するオブジェクトのインデックス
+    IntersectionResult *result = new IntersectionResult();
+
+    float minDistance = 10e6; // レイの視点との最小距離
 
     // 全オブジェクトの交点を調べ，レイの視点に最も近い交点を決定する
-    for (size_t idx = 0; idx < 6; idx++)
+    for (size_t idx = 0; idx < geometryNum; idx++)
     {
         // レイと球が交差するか判定+交点があれば計算
-        IntersectionPoint *point = geometry[idx].isIntersectionRay(ray);
+        IntersectionPoint *point = geometry[idx]->isIntersectionRay(ray);
 
         // 交点ないならスキップ
         if (point == nullptr)
@@ -246,19 +229,20 @@ IntersectionPoint *intersectionWithAll(Shape *geometry, Ray *ray)
             // 最小距離更新
             minDistance = distance;
 
-            // 描画対象オブジェクトのインデックス更新
-            drawIdx = idx;
+            // 描画対象オブジェクトを更新
+            result->shape = geometry[idx];
 
             // 先に交点が代入されていたらメモリ解放する
-            if (intersectionPoint != nullptr)
-                delete intersectionPoint;
+            if (result->intersectionPoint != nullptr)
+                delete result->intersectionPoint;
+
             // 交点のメモリを確保してpointの中身をコピーする
-            intersectionPoint = new IntersectionPoint();
-            memmove(intersectionPoint, point, sizeof(IntersectionPoint));
+            result->intersectionPoint = new IntersectionPoint();
+            memmove(result->intersectionPoint, point, sizeof(IntersectionPoint));
         }
     }
 
-    return intersectionPoint;
+    return result;
 }
 
 void RayTrace(BitMapData *bitmap, Shape *geometry, Camera *camera, PointLight *pointLight)

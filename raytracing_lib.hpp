@@ -20,7 +20,8 @@ struct IntersectionPoint
 {
     Vector3 position; // 交点の位置
     Vector3 normal;   // 交点における法線
-    ~IntersectionPoint(){
+    ~IntersectionPoint()
+    {
         // recordLine("IntersectionPointのデストラクタが呼ばれました\n");
     }
 };
@@ -124,26 +125,6 @@ struct PointLight
     Vector3 position; // 光源位置
 };
 
-// Zバッファ
-struct ZBuffer
-{
-    unsigned char *zbuff;
-    unsigned int width;
-    unsigned int height;
-    ZBuffer(unsigned int w, unsigned int h) : width(w), height(h)
-    {
-        // バッファ確保
-        zbuff = (unsigned char *)malloc(sizeof(unsigned char) * w * h);
-        // 1で初期化
-        memset((void *)zbuff, ZBUFFER_MAX, sizeof(unsigned char) * w * h);
-    }
-};
-
-// Zバッファを考慮した描画
-void drawDotWithZBuffer(
-    BitMapData *bitmap, unsigned int x, unsigned int y, Color color,
-    ZBuffer *zbuffer, unsigned char z);
-
 // 視点からスクリーン座標へのRayを生成
 Ray createRay(Camera camera, float x, float y, float width, float height);
 
@@ -158,8 +139,25 @@ Color phongShading(
 Color phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight, Material material);
 
+// 交差判定の結果
+struct IntersectionResult
+{
+    IntersectionPoint *intersectionPoint = nullptr;
+    Shape *shape = nullptr;
+    ~IntersectionResult()
+    {
+        if (intersectionPoint != nullptr)
+            delete intersectionPoint;
+        intersectionPoint = nullptr;
+
+        if (shape != nullptr)
+            delete shape;
+        shape = nullptr;
+    }
+};
+
 // すべてのオブジェクトと交差判定
-IntersectionPoint* intersectionWithAll(Shape* geometry, Ray* ray);
+IntersectionResult *intersectionWithAll(Shape **geometry, int geometryNum, Ray *ray);
 
 // レイトレーシング
-void RayTrace(BitMapData* bitmap,Shape* geometry, Camera* camera, PointLight* pointLight);
+void RayTrace(BitMapData *bitmap, Shape *geometry, Camera *camera, PointLight *pointLight);
