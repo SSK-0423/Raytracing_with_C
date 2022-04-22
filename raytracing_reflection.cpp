@@ -9,7 +9,7 @@ int main()
         return -1;
 
     // ビットマップデータ
-    BitMapData bitmap(512, 512, 3);
+    BitMapData bitmap(1280, 1280, 3);
     if (bitmap.allocation() == -1)
         return -1;
 

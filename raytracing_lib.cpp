@@ -331,7 +331,10 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
         if (intersectionResult->intersectionPoint == nullptr)
             return FColor(FLT_MAX, FLT_MAX, FLT_MAX);
 
+        // 輝度値
         FColor luminance;
+        // ここでフォンシェーディングで輝度値を計算すると
+        // ドット抜けが発生する
 
         // 影付け処理は一番最後?
         if (intersectionResult->intersectionPoint != nullptr)
@@ -361,15 +364,19 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
             // 光源との間に交点が存在したら
             if (shadowResult->intersectionPoint != nullptr)
             {
-                luminance = FColor(1.f, 1.f, 1.f);
-                return FColor(0.f, 0.f, 0.f);
+                luminance = FColor(0.f, 0.f, 0.f);
+                // ここでリターンすると，鏡面反射成分が反映されなくなるので不適切
+                // return FColor(0.f,0.f,0.f);
+            }
+            else
+            {
+                luminance = phongShading(
+                    *intersectionResult->intersectionPoint, *ray,
+                    *(scene->pointLight), intersectionResult->shape->material);
             }
         }
 
-        // 輝度計算
-        luminance = phongShading(
-            *intersectionResult->intersectionPoint, *ray,
-            *(scene->pointLight), intersectionResult->shape->material);
+        // ここで輝度計算をすると，影が生成されなくなる
 
         // 鏡面反射が有効なら
         if (intersectionResult->shape->material.useReflection)
