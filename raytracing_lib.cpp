@@ -378,8 +378,11 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
 
         // ここで輝度計算をすると，影が生成されなくなる
 
+        bool useReflection = intersectionResult->shape->material.useReflection;
+        bool useRefraction = intersectionResult->shape->material.useRefraction;
+
         // 鏡面反射が有効なら
-        if (intersectionResult->shape->material.useReflection)
+        if (useReflection || useRefraction)
         {
             // 交点
             IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
@@ -418,6 +421,37 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
                 reflectionLight.g = reflection.g * nextLuminace.g;
                 reflectionLight.b = reflection.b * nextLuminace.b;
 
+                // 屈折計算
+                if (useRefraction)
+                {
+                    float refractionIndex_1;
+                    float refractionIndex_2;
+                    float refractionIndexDiv;
+                    // 物体表面からの進入
+                    if (dot > 0)
+                    {
+                        refractionIndex_1 = scene->globalRefractionIndex;
+                        refractionIndex_2 = intersectionResult->shape->material.refractionIndex;
+                    }
+                    // 物体裏面からの進入
+                    else
+                    {
+                        refractionIndex_1 = intersectionResult->shape->material.refractionIndex;
+                        refractionIndex_2 = scene->globalRefractionIndex;
+                    }
+
+                    refractionIndexDiv = refractionIndex_1 / refractionIndex_2;
+
+                    float cos_1 = (-1) * ray->direction.dot(normal);
+                    float cos_2 =
+                        refractionIndexDiv *
+                        mySqrt(myPow(refractionIndex_2, 2) - (1 - myPow(cos_1, 2)));
+
+                    float omega = refractionIndexDiv * cos_2 - cos_1;
+                    // 屈折ベクトル
+                    Vector3 f =
+                        refractionIndexDiv * ray->direction - refractionIndexDiv * omega * normal;
+                }
                 return reflectionLight;
             }
         }

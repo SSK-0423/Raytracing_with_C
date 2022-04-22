@@ -78,6 +78,8 @@ struct Material
 
     bool useReflection; // 完全鏡面反射を使うかどうか
     FColor reflection;  // 完全鏡面反射係数
+    bool useRefraction; //  
+    float refractionIndex;
     Material(FColor a = FColor(0.01f, 0.01f, 0.01f),
              FColor d = FColor(0.69f, 0.69f, 0.69f),
              FColor s = FColor(0.30f, 0.30f, 0.30f), float shi = 8.f,
@@ -197,6 +199,11 @@ struct Scene
     Camera *camera;
     PointLight *pointLight;
     Color gackgroundColor;
+    float globalRefractionIndex;
+    Scene()
+    {
+        globalRefractionIndex = 1.000293;
+    }
 };
 
 // 視点からスクリーン座標へのRayを生成
