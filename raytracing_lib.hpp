@@ -161,13 +161,7 @@ struct PointLight : Light
         Lighting lighting;
         lighting.distance = (position - p).magnitude();
         lighting.direction = (position - p).normalize();
-        // recordLine("lighting direction = (%4.2f, %4.2f, %4.2f)\n",
-        //            lighting.direction.x, lighting.direction.y, lighting.direction.z);
         lighting.intensity = intensity;
-        // recordLine("position = (%4.2f, %4.2f, %4.2f)\n",
-        //            position.x, position.y, position.z);
-        // recordLine("p = (%4.2f, %4.2f, %4.2f)\n",
-        //            p.x, p.y, p.z);
 
         return lighting;
     }
@@ -200,8 +194,11 @@ struct Scene
     BitMapData *bitmap;
     Shape **geometry;
     int geometryNum;
+    Light **light;
     Camera *camera;
     PointLight *pointLight;
+    int lightNum;
+    FColor backgroundColor;
     float globalRefractionIndex;
     Scene()
     {

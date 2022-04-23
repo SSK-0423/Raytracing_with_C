@@ -1,15 +1,16 @@
 #include "raytracing_lib.hpp"
 
 #define GEOMETRY_NUM 6
+#define LIGHT_NUM 3
 
 int main()
 {
     // ログファイル初期化
-    if (initLogFile("raytracing_multiLight.txt") == 1)
+    if (initLogFile("log.txt") == 1)
         return -1;
 
     // ビットマップデータ
-    BitMapData bitmap(512, 512, 3);
+    BitMapData bitmap(1280, 1280, 3);
     if (bitmap.allocation() == -1)
         return -1;
 
@@ -37,11 +38,41 @@ int main()
     Camera camera;
     camera.position = Vector3(0, 0, -5);
 
+    Light *lights[LIGHT_NUM];
+
     // 点光源の位置を決める
-    PointLight* pointLight = new PointLight(Vector3(-5, 5, -5), FColor(1.f, 1.f, 1.f));
-    // pointLight.position = Vector3(-5, 5, -5);
-    // pointLight.intensity = FColor(1.f, 1.f, 1.f);
-    // recordLine("%f,%f,%f\n",pointLight->position.x,pointLight->position.y,pointLight->position.z);
+    PointLight pointLight;
+    pointLight.position = Vector3(-5, 5, -5);
+    pointLight.intensity = FColor(1.f, 1.f, 1.f);
+
+    PointLight *point1 = new PointLight();
+    point1->position = Vector3(-5, 5, -5);
+    point1->intensity = FColor(0.5, 0.5, 0.5);
+    PointLight *point2 = new PointLight();
+    point2->position = Vector3(5, 0, -5);
+    point2->intensity = FColor(0.5, 0.5, 0.5);
+    PointLight *point3 = new PointLight();
+    point3->position = Vector3(5, 20, -5);
+    point3->intensity = FColor(0.5, 0.5, 0.5);
+
+    lights[0] = point1;
+    lights[1] = point2;
+    lights[2] = point3;
+
+    DirectionalLight *directional = new DirectionalLight();
+    directional->direction = Vector3(0, -1, 0);
+    directional->intensity = FColor(1, 1, 1);
+
+    // シーン作成
+    Scene scene;
+    scene.bitmap = &bitmap;
+    scene.camera = &camera;
+    scene.geometry = geometry;
+    scene.geometryNum = GEOMETRY_NUM;
+    scene.backgroundColor = FColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f);
+    scene.pointLight = &pointLight;
+    scene.light = lights;
+    scene.lightNum = LIGHT_NUM;
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める
@@ -51,35 +82,12 @@ int main()
         {
             // レイを生成
             Ray ray = createRay(camera, x, y, bitmap.width, bitmap.height);
-
-            // 全物体との交差判定
-            IntersectionResult *intersectionResult =
-                intersectionWithAll(geometry, GEOMETRY_NUM, &ray);
-
-            // レイと物体に交点あり
-            if (intersectionResult->intersectionPoint != nullptr)
-            {
-                // Color color = phongShading(
-                //     *intersectionResult->intersectionPoint, ray,
-                //     pointLight, intersectionResult->shape->material);
-                // Material material = intersectionResult->shape->material;
-                // Lighting lighting = pointLight.lightingAt(intersectionResult->intersectionPoint->position);
-                // recordLine("point = (%4.2f, %4.2f, %4.2f)\n",
-                //            point->position.x, point->position.y, point->position.z);
-                Vector3 answer =
-                (pointLight->position - intersectionResult->intersectionPoint->position).normalize();
-                recordLine("answer direction = (%4.2f, %4.2f, %4.2f)\n",
-                           answer.x, answer.y, answer.z);
-                Color color = phongShading(
-                    *intersectionResult->intersectionPoint, ray,
-                    pointLight->lightingAt(intersectionResult->intersectionPoint->position),
-                    intersectionResult->shape->material);
-                drawDot(&bitmap, x, y, color);
-            }
-            else
-            {
-                drawDot(&bitmap, x, y, Color(100, 149, 237));
-            }
+            FColor luminance = RayTrace(&scene, &ray);
+            Color color;
+            color.r = luminance.r * 0xff;
+            color.g = luminance.g * 0xff;
+            color.b = luminance.b * 0xff;
+            drawDot(&bitmap, x, y, color);
         }
     }
 
@@ -93,6 +101,11 @@ int main()
     }
 
     freeBitmapData(&bitmap);
+
+    for (auto o : geometry)
+    {
+        delete o;
+    }
 
     finalLogFile();
 

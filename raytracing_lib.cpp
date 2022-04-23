@@ -47,7 +47,7 @@ IntersectionPoint *Sphere::isIntersectionRay(Ray *ray)
         float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
         float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
         // recordLine("t1:%lf, t2:%lf\n", t1, t2);
-        if (t1 >= 0 || t2 >= 0)
+        if (t1 > 0 || t2 > 0)
         {
             // 交点は値が小さい方を採用
             IntersectionPoint *point = new IntersectionPoint();
@@ -73,7 +73,7 @@ IntersectionPoint *Plane::isIntersectionRay(Ray *ray)
 
     float t = (position - ray->startPoint).dot(normal) / dn;
     // 交点あり
-    if (t >= 0)
+    if (t > 0)
     {
         IntersectionPoint *point = new IntersectionPoint();
         point->position = ray->startPoint + t * ray->direction;
@@ -315,11 +315,11 @@ FColor RayTrace(Scene *scene, Ray *ray)
 
 FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
 {
-    // recordLine("再帰回数 = %d回目\n", recursiveLevel);
-
     // 再起回数の上限に達していたら
     if (recursiveLevel > MAX_RECURSIVE_LEVEL)
+    {
         return FColor(FLT_MAX, FLT_MAX, FLT_MAX);
+    }
 
     // 再帰回数の上限以内なら
     else
@@ -329,23 +329,40 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
             intersectionWithAll(scene->geometry, scene->geometryNum, ray);
 
         if (intersectionResult->intersectionPoint == nullptr)
-            return FColor(FLT_MAX, FLT_MAX, FLT_MAX);
+            return scene->backgroundColor;
 
         // 輝度値
         FColor luminance;
-        // ここでフォンシェーディングで輝度値を計算すると
-        // ドット抜けが発生する
+
+        bool useReflection = intersectionResult->shape->material.useReflection;
+        bool useRefraction = intersectionResult->shape->material.useRefraction;
+
+
+        // 複数光源テスト用
+        for(size_t idx = 0; idx < scene->lightNum; idx++)
+        {
+        }
 
         // シャドウイング
         if (intersectionResult->intersectionPoint != nullptr)
         {
+            // 影(0,0,0) or フォンシェーディング
             shadowing(scene, ray, intersectionResult, &luminance);
+
+            if (useRefraction && luminance.r == 0 && luminance.g == 0 && luminance.b == 0)
+            {
+                recordLine("%d : 影\n", recursiveLevel);
+            }
+            // if (luminance.r == 0 && luminance.g == 0 && luminance.b == 0)
+            // {
+            //     return FColor(1, 1, 1);
+            // }
+
+            recordLine("recursiveLevel = %d シャドウイングでの輝度\n", recursiveLevel);
+            recordLine("%d : luminance.r = %f\n", recursiveLevel, luminance.r);
+            recordLine("%d : luminance.g = %f\n", recursiveLevel, luminance.g);
+            recordLine("%d : luminance.b = %f\n", recursiveLevel, luminance.b);
         }
-
-        // ここで輝度計算をすると，影が生成されなくなる
-
-        bool useReflection = intersectionResult->shape->material.useReflection;
-        bool useRefraction = intersectionResult->shape->material.useRefraction;
 
         // 鏡面反射
         if (useReflection)
@@ -360,6 +377,12 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
         }
 
         // 輝度を返す
+        // recordLine("recursiveLevel = %d での輝度\n", recursiveLevel);
+        // recordLine("%d : luminance.r = %f\n", recursiveLevel, luminance.r);
+        // recordLine("%d : luminance.g = %f\n", recursiveLevel, luminance.g);
+        // recordLine("%d : luminance.b = %f\n", recursiveLevel, luminance.b);
+        // if (recursiveLevel == 1)
+        //     recordLine("=================================\n");
         return luminance;
     }
 }
@@ -436,22 +459,20 @@ void reflection(
         newRay.direction = newDirection;
 
         // 次の反射の輝度を取得
-        FColor nextLuminace = RayTraceRecursive(scene, &newRay, recursiveLevel + 1);
-        if (nextLuminace.r == FLT_MAX)
+        FColor nextLuminance = RayTraceRecursive(scene, &newRay, recursiveLevel + 1);
+        if (nextLuminance.r != FLT_MAX)
         {
-            nextLuminace = FColor(1.f, 1.f, 1.f);
+            // 完全鏡面反射光計算
+            FColor reflection = intersectionResult->shape->material.reflection;
+            FColor reflectionLuminance;
+            reflectionLuminance.r = reflection.r * nextLuminance.r;
+            reflectionLuminance.g = reflection.g * nextLuminance.g;
+            reflectionLuminance.b = reflection.b * nextLuminance.b;
+
+            luminance->r += reflectionLuminance.r;
+            luminance->g += reflectionLuminance.g;
+            luminance->b += reflectionLuminance.b;
         }
-
-        // 完全鏡面反射光計算
-        FColor reflection = intersectionResult->shape->material.reflection;
-        FColor reflectionLuminance;
-        reflectionLuminance.r = reflection.r * nextLuminace.r;
-        reflectionLuminance.g = reflection.g * nextLuminace.g;
-        reflectionLuminance.b = reflection.b * nextLuminace.b;
-
-        luminance->r = reflectionLuminance.r;
-        luminance->g = reflectionLuminance.g;
-        luminance->b = reflectionLuminance.b;
     }
 }
 
@@ -534,36 +555,43 @@ void refraction(
     float ct = 1.f - cr;
 
     // 各変数の値を表示
-    recordLine("=============================\n");
-    recordLine("eta1 = %f\n", refractionIndex_1);
-    recordLine("eta2 = %f\n", refractionIndex_2);
-    recordLine("etaR = %f\n", refractionIndexDiv);
+    // recordLine("=============================\n");
+    // recordLine("eta1 = %f\n", refractionIndex_1);
+    // recordLine("eta2 = %f\n", refractionIndex_2);
+    // recordLine("etaR = %f\n", refractionIndexDiv);
 
-    recordLine("cosθ1 = %f\n", cos_1);
-    recordLine("cosθ2 = %f\n", cos_2);
+    // recordLine("cosθ1 = %f\n", cos_1);
+    // recordLine("cosθ2 = %f\n", cos_2);
 
-    recordLine("Ω = %f\n", omega);
+    // recordLine("Ω = %f\n", omega);
 
-    recordLine("polarized_P = %f\n", polarized_p);
-    recordLine("polarized_S = %f\n", polarized_s);
+    // recordLine("polarized_P = %f\n", polarized_p);
+    // recordLine("polarized_S = %f\n", polarized_s);
 
-    recordLine("cR = %f\n", cr);
-    recordLine("cT = %f\n", ct);
+    // recordLine("cR = %f\n", cr);
+    // recordLine("cT = %f\n", ct);
 
-    recordLine("=============================\n");
+    // recordLine("=============================\n");
 
     FColor reflection = intersectionResult->shape->material.reflection;
 
     // 正反射方向の輝度を計算
     // 次の反射の輝度を取得
-    FColor nextLuminace = RayTraceRecursive(scene, &specularReflectionRay, recursiveLevel + 1);
-    if (nextLuminace.r != FLT_MAX)
+    FColor nextLuminance = RayTraceRecursive(scene, &specularReflectionRay, recursiveLevel + 1);
+
+    recordLine("正反射光の放射輝度\n");
+    recordLine("%d : nextLuminance.r = %f\n", recursiveLevel, nextLuminance.r);
+    recordLine("%d : nextLuminance.g = %f\n", recursiveLevel, nextLuminance.g);
+    recordLine("%d : nextLuminance.b = %f\n", recursiveLevel, nextLuminance.b);
+    if (nextLuminance.r != FLT_MAX)
     {
         // 完全鏡面反射輝度(正反射)計算
         FColor reflectionLuminance;
-        reflectionLuminance.r = nextLuminace.r;
-        reflectionLuminance.g = nextLuminace.g;
-        reflectionLuminance.b = nextLuminace.b;
+        reflectionLuminance.r = nextLuminance.r;
+        reflectionLuminance.g = nextLuminance.g;
+        reflectionLuminance.b = nextLuminance.b;
+
+        recordLine("cR = %f\n", cr);
 
         // 最終放射輝度に加算
         luminance->r += reflection.r * cr * reflectionLuminance.r;
@@ -573,14 +601,23 @@ void refraction(
 
     // 屈折光の放射輝度計算
     // 次の反射の輝度を取得
-    nextLuminace = RayTraceRecursive(scene, &refractionRay, recursiveLevel + 1);
-    if (nextLuminace.r != FLT_MAX)
+    nextLuminance = RayTraceRecursive(scene, &refractionRay, recursiveLevel + 1);
+    recordLine("屈折光の放射輝度\n");
+    recordLine("%d : nextLuminance.r = %f\n", recursiveLevel, nextLuminance.r);
+    recordLine("%d : nextLuminance.g = %f\n", recursiveLevel, nextLuminance.g);
+    recordLine("%d : nextLuminance.b = %f\n", recursiveLevel, nextLuminance.b);
+
+    if (nextLuminance.r != FLT_MAX)
     {
         // 屈折光の放射輝度計算
         FColor refractionLuminance;
-        refractionLuminance.r = nextLuminace.r;
-        refractionLuminance.g = nextLuminace.g;
-        refractionLuminance.b = nextLuminace.b;
+        refractionLuminance.r = nextLuminance.r;
+        refractionLuminance.g = nextLuminance.g;
+        refractionLuminance.b = nextLuminance.b;
+
+        recordLine("refractionLuminance.r = %f\n", refractionLuminance.r);
+        recordLine("refractionLuminance.g = %f\n", refractionLuminance.g);
+        recordLine("refractionLuminance.b = %f\n", refractionLuminance.b);
 
         // 最終放射輝度に加算
         luminance->r += reflection.r * ct * refractionLuminance.r;

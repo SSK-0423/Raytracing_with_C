@@ -5,7 +5,7 @@
 int main()
 {
     // ログファイル初期化
-    if (initLogFile("raytracing_refraction.txt") == 1)
+    if (initLogFile("log.txt") == 1)
         return -1;
 
     // ビットマップデータ
@@ -25,8 +25,6 @@ int main()
 
     // 球(屈折)
     geometry[1] = new Sphere(Vector3(0.5, -0.65, 2), 0.35f);
-    // geometry[1]->material =
-    //     Material(FColor(1.f, 1.f, 1.f), FColor(1.f, 1.f, 1.f), FColor(1.f, 1.f, 1.f),0.f);
     geometry[1]->material =
         Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f),0.f);
     geometry[1]->material.useRefraction = true;

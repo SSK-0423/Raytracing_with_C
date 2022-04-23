@@ -5,11 +5,11 @@
 int main()
 {
     // ログファイル初期化
-    if (initLogFile("raytracing_reflection.txt") == 1)
+    if (initLogFile("log.txt") == 1)
         return -1;
 
     // ビットマップデータ
-    BitMapData bitmap(512, 512, 3);
+    BitMapData bitmap(1280, 1280, 3);
     if (bitmap.allocation() == -1)
         return -1;
 
@@ -18,26 +18,29 @@ int main()
 
     // 球
     geometry[0] = new Sphere(Vector3(-0.4, -0.65, 3), 0.35f);
-    // geometry[0]->material =
-    //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f),0.f);
+    geometry[0]->material =
+        Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
     geometry[0]->material.useReflection = true;
     geometry[0]->material.reflection = FColor(1.f, 1.f, 1.f);
-    geometry[1] = new Sphere(Vector3(0.5,-0.65,2),0.35f);
-    geometry[1]->material.useReflection = true;
-    geometry[1]->material.reflection = FColor(1.f,1.f,1.f);
+    geometry[1] = new Sphere(Vector3(0.5, -0.65, 2), 0.35f);
+    geometry[1]->material.diffuse = FColor(0.f, 1.f, 0.5f);
+    // geometry[1]->material =
+    //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
+    // geometry[1]->material.useReflection = true;
+    // geometry[1]->material.reflection = FColor(1.f, 1.f, 1.f);
 
     // 平面
     geometry[2] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0)); // 白い床
     geometry[3] = new Plane(Vector3(0, -1, 0), Vector3(0, 1, 0)); // 白い天井
     geometry[4] = new Plane(Vector3(1, 0, 0), Vector3(-1, 0, 0)); // 赤い壁
-    geometry[5] = new Plane(Vector3(-1, 0, 0), Vector3(1, 0, 0)); // 緑の壁
+    geometry[5] = new Plane(Vector3(-1, 0, 0), Vector3(1, 0, 0)); // 青の壁
     geometry[6] = new Plane(Vector3(0, 0, -1), Vector3(0, 0, 5)); // 白い壁
 
     // マテリアルセット
     geometry[2]->material.diffuse = FColor(1.f, 1.f, 1.f);
     geometry[3]->material.diffuse = FColor(1.f, 1.f, 1.f);
     geometry[4]->material.diffuse = FColor(1.f, 0, 0);
-    geometry[5]->material.diffuse = FColor(0, 1.f, 0);
+    geometry[5]->material.diffuse = FColor(0, 0, 1.f);
     geometry[6]->material.diffuse = FColor(1.f, 1.f, 1.f);
 
     // 視点の位置を決める
@@ -55,7 +58,7 @@ int main()
     scene.camera = &camera;
     scene.geometry = geometry;
     scene.geometryNum = GEOMETRY_NUM;
-    scene.gackgroundColor = Color(100, 149, 237);
+    scene.backgroundColor = FColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f);
     scene.pointLight = &pointLight;
 
     // 視線方向で最も近い物体を探し，
