@@ -85,8 +85,7 @@ struct Material
              FColor s = FColor(0.30f, 0.30f, 0.30f), float shi = 8.f,
              FColor f = FColor(0, 0, 0), bool uf = false,
              bool ur = false, float index = 1.f)
-        : ambient(a), diffuse(d), specular(s), shininess(shi), reflection(f), useReflection(uf),
-          useRefraction(ur), refractionIndex(index)
+        : ambient(a), diffuse(d), specular(s), shininess(shi), reflection(f), useReflection(uf)
     {
     }
 };
@@ -98,6 +97,8 @@ struct Shape
     virtual IntersectionPoint *isIntersectionRay(Ray *ray) = 0;
     // マテリアル
     Material material;
+
+    virtual ~Shape() {}
 };
 
 // 球
@@ -255,3 +256,17 @@ FColor RayTrace(Scene *scene, Ray *ray);
 
 // レイトレーシングの再帰呼び出し
 FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel);
+
+// 影生成
+void shadowing(
+    Scene *scene, Ray *ray, IntersectionResult *intersectionResult, FColor *luminance);
+
+// 鏡面反射計算
+void reflection(
+    Scene *scene, Ray *ray,
+    IntersectionResult *intersectionResult, FColor *luminance, unsigned int recursiveLevel);
+
+// 屈折計算
+void refraction(
+    Scene *scene, Ray *ray,
+    IntersectionResult *intersectionResult, FColor *luminance, unsigned int recursiveLevel);
