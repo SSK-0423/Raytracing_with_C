@@ -78,13 +78,15 @@ struct Material
 
     bool useReflection; // 完全鏡面反射を使うかどうか
     FColor reflection;  // 完全鏡面反射係数
-    bool useRefraction; //  
+    bool useRefraction; //
     float refractionIndex;
     Material(FColor a = FColor(0.01f, 0.01f, 0.01f),
              FColor d = FColor(0.69f, 0.69f, 0.69f),
              FColor s = FColor(0.30f, 0.30f, 0.30f), float shi = 8.f,
-             FColor f = FColor(0, 0, 0), bool uf = false)
-        : ambient(a), diffuse(d), specular(s), shininess(shi), reflection(f), useReflection(uf)
+             FColor f = FColor(0, 0, 0), bool uf = false,
+             bool ur = false, float index = 1.f)
+        : ambient(a), diffuse(d), specular(s), shininess(shi), reflection(f), useReflection(uf),
+          useRefraction(ur), refractionIndex(index)
     {
     }
 };

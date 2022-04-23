@@ -22,7 +22,7 @@ float mySqrt(float n)
     xn = 1000.f;
 
     // ニュートン法
-    while (myAbsf(xn - xo) > 1.0e-10)
+    while (myAbsf(xn - xo) > 1.0e-6)
     {
         xo = xn;
         xn = (xo + n / xo) / 2;
