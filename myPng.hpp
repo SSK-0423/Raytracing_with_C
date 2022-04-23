@@ -57,6 +57,17 @@ struct BitMapData
 
         return 0; // 成功
     }
+
+    Color getPixelColor(unsigned int x, unsigned int y)
+    {
+        unsigned char *pixel = pixelsData + y * width * channel + x * channel;
+        if (channel == COLOR_RGB)
+            return Color(pixel[0], pixel[1], pixel[2]);
+        if (channel == COLOR_RGBA)
+            return Color(pixel[0], pixel[1], pixel[2], pixel[3]);
+        else
+            return Color(0, 0, 0);
+    }
 };
 
 int pngFileReadDecode(BitMapData *, const char *);

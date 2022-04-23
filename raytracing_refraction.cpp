@@ -9,7 +9,7 @@ int main()
         return -1;
 
     // ビットマップデータ
-    BitMapData bitmap(512, 512, 3);
+    BitMapData bitmap(1280, 1280, 3);
     if (bitmap.allocation() == -1)
         return -1;
 
@@ -22,9 +22,11 @@ int main()
     //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f),0.f);
     geometry[0]->material.useReflection = true;
     geometry[0]->material.reflection = FColor(1.f, 1.f, 1.f);
-    geometry[1] = new Sphere(Vector3(0.5,-0.65,2),0.35f);
+    geometry[1] = new Sphere(Vector3(0.5, -0.65, 2), 0.35f);
+    // geometry[1]->material.useRefraction = true;
     geometry[1]->material.useReflection = true;
-    geometry[1]->material.reflection = FColor(1.f,1.f,1.f);
+    geometry[1]->material.reflection = FColor(1.f, 1.f, 1.f);
+    geometry[1]->material.refractionIndex = 1.51;
 
     // 平面
     geometry[2] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0)); // 白い床
@@ -75,10 +77,25 @@ int main()
         }
     }
 
+    // // ブレンド処理(黒点が出るのをごまかす)
+    // for (int y = 0; y < bitmap.height; y++)
+    // {
+    //     for (int x = 0; x < bitmap.width - 1; x++)
+    //     {
+    //         Color rcolor = bitmap.getPixelColor(x + 1, y);
+    //         Color ncolor = bitmap.getPixelColor(x, y);
+    //         Color color;
+    //         color.r = (float)(ncolor.r + ncolor.r) / 2.f;
+    //         color.g = (float)(ncolor.g + ncolor.g) / 2.f;
+    //         color.b = (float)(ncolor.b + ncolor.b) / 2.f;
+    //         drawDot(&bitmap, x, y, color);
+    //     }
+    // }
+
     recordLine("演算子の個数%ld\n", operationCount);
 
     // PNGに変換してファイル保存
-    if (pngFileEncodeWrite(&bitmap, "raytracing_reflection.png") == -1)
+    if (pngFileEncodeWrite(&bitmap, "raytracing_refraction.png") == -1)
     {
         freeBitmapData(&bitmap);
         return -1;
