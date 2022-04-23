@@ -85,7 +85,8 @@ struct Material
              FColor s = FColor(0.30f, 0.30f, 0.30f), float shi = 8.f,
              FColor f = FColor(0, 0, 0), bool uf = false,
              bool ur = false, float index = 1.f)
-        : ambient(a), diffuse(d), specular(s), shininess(shi), reflection(f), useReflection(uf)
+        : ambient(a), diffuse(d), specular(s), shininess(shi), reflection(f), useReflection(uf),
+          useRefraction(ur), refractionIndex(index)
     {
     }
 };
@@ -201,7 +202,6 @@ struct Scene
     int geometryNum;
     Camera *camera;
     PointLight *pointLight;
-    Color gackgroundColor;
     float globalRefractionIndex;
     Scene()
     {

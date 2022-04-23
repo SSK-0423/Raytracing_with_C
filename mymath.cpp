@@ -19,10 +19,10 @@ float calcQuadraticFormula(float a, float b, float c, SOLUTION solution)
 float mySqrt(float n)
 {
     float xn, xo;
-    xn = 1000.f;
+    xn = 100.f;
 
     // ニュートン法
-    while (myAbsf(xn - xo) > 1.0e-6)
+    while (myAbsf(xn - xo) > 1.0e-5)
     {
         xo = xn;
         xn = (xo + n / xo) / 2;

@@ -5,7 +5,7 @@
 int main()
 {
     // ログファイル初期化
-    if (initLogFile("raytracing_reflection.txt") == 1)
+    if (initLogFile("raytracing_refraction.txt") == 1)
         return -1;
 
     // ビットマップデータ
@@ -16,15 +16,20 @@ int main()
     // 描画オブジェクト
     Shape *geometry[GEOMETRY_NUM];
 
-    // 球
+    // 球(完全鏡面反射 )
     geometry[0] = new Sphere(Vector3(-0.4, -0.65, 3), 0.35f);
-    // geometry[0]->material =
-    //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f),0.f);
+    geometry[0]->material =
+        Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f),0.f);
     geometry[0]->material.useReflection = true;
     geometry[0]->material.reflection = FColor(1.f, 1.f, 1.f);
+
+    // 球(屈折)
     geometry[1] = new Sphere(Vector3(0.5, -0.65, 2), 0.35f);
-    // geometry[1]->material.useRefraction = true;
-    geometry[1]->material.useReflection = true;
+    // geometry[1]->material =
+    //     Material(FColor(1.f, 1.f, 1.f), FColor(1.f, 1.f, 1.f), FColor(1.f, 1.f, 1.f),0.f);
+    geometry[1]->material =
+        Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f),0.f);
+    geometry[1]->material.useRefraction = true;
     geometry[1]->material.reflection = FColor(1.f, 1.f, 1.f);
     geometry[1]->material.refractionIndex = 1.51;
 
@@ -36,11 +41,11 @@ int main()
     geometry[6] = new Plane(Vector3(0, 0, -1), Vector3(0, 0, 5)); // 白い壁
 
     // マテリアルセット
-    geometry[2]->material.diffuse = FColor(1.f, 1.f, 1.f);
+    geometry[2]->material.diffuse = FColor(0.7f, 0.7f, 0.7f);
     geometry[3]->material.diffuse = FColor(1.f, 1.f, 1.f);
     geometry[4]->material.diffuse = FColor(1.f, 0, 0);
-    geometry[5]->material.diffuse = FColor(0, 1.f, 0);
-    geometry[6]->material.diffuse = FColor(1.f, 1.f, 1.f);
+    geometry[5]->material.diffuse = FColor(0, 0, 1.f);
+    geometry[6]->material.diffuse = geometry[2]->material.diffuse;
 
     // 視点の位置を決める
     Camera camera;
@@ -57,7 +62,6 @@ int main()
     scene.camera = &camera;
     scene.geometry = geometry;
     scene.geometryNum = GEOMETRY_NUM;
-    scene.gackgroundColor = Color(100, 149, 237);
     scene.pointLight = &pointLight;
 
     // 視線方向で最も近い物体を探し，
