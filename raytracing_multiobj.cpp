@@ -95,7 +95,11 @@ int main()
                 // recordLine("レイ始点 = (%4.2f,%4.2f,%4.2f)\n", ray.startPoint.x, ray.startPoint.y, ray.startPoint.z);
                 // recordLine("レイ方向 = (%4.2f,%4.2f,%4.2f)\n", ray.direction.x, ray.direction.y, ray.direction.z);
                 // recordLine("点光源 = (%4.2f,%4.2f,%4.2f)\n", pointLight.position.x, pointLight.position.y, pointLight.position.z);
-                Color color = phongShading(*intersectionPoint, ray, pointLight, geometry[drawIdx]->material);
+                FColor phong = phongShading(*intersectionPoint, ray, pointLight, geometry[drawIdx]->material);
+                Color color;
+                color.r = phong.r * 0xff;
+                color.g = phong.g * 0xff;
+                color.b = phong.b * 0xff;
                 drawDot(&bitmap, x, y, color);
 
                 // drawDot(&bitmap, x, y, Color(0, 255, 0));

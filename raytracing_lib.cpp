@@ -197,7 +197,7 @@ FColor phongShading(
     return I;
 }
 
-Color phongShading(
+FColor phongShading(
     IntersectionPoint intersectionPoint, Ray ray, Lighting lighting, Material material)
 {
     // 法線ベクトル
@@ -207,17 +207,21 @@ Color phongShading(
     Vector3 incident = lighting.direction;
 
     // 正反射ベクトル計算 r = 2(n・l)n - l
-    Vector3 specularReflection = 2 * normal.dot(incident) * normal - incident;
+    Vector3 specularReflection = 2.f * normal.dot(incident) * normal - incident;
 
     // ディフューズ(拡散反射光)
     FColor diffuse;
     diffuse.r = lighting.intensity.r * material.diffuse.r * normal.dot(incident);
     diffuse.g = lighting.intensity.g * material.diffuse.g * normal.dot(incident);
     diffuse.b = lighting.intensity.b * material.diffuse.b * normal.dot(incident);
+    diffuse.normalize();
+    recordLine("diffuse.r = %f\n", diffuse.r);
+    recordLine("diffuse.g = %f\n", diffuse.g);
+    recordLine("diffuse.b = %f\n", diffuse.b);
 
     // スペキュラー
     // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
-    Vector3 inverseEyeDir = ((-1) * ray.direction).normalize();
+    Vector3 inverseEyeDir = ((-1.f) * ray.direction).normalize();
     // (cos)^aを計算
     float cos_a = myPow(inverseEyeDir.dot(specularReflection), material.shininess);
 
@@ -225,6 +229,10 @@ Color phongShading(
     specular.r = lighting.intensity.r * material.specular.r * cos_a;
     specular.g = lighting.intensity.g * material.specular.g * cos_a;
     specular.b = lighting.intensity.b * material.specular.b * cos_a;
+    specular.normalize();
+    recordLine("specular.r = %f\n", specular.r);
+    recordLine("specular.g = %f\n", specular.g);
+    recordLine("specular.b = %f\n", specular.b);
 
     // 視線逆ベクトルと正反射ベクトルの内積もしくは，
     // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
@@ -232,23 +240,10 @@ Color phongShading(
     if (inverseEyeDir.dot(specularReflection) < 0 || normal.dot(incident) < 0)
         specular = FColor(0.f, 0.f, 0.f);
 
-    // 環境光
-    float Ia = 0.1f; // 環境光の強度
-
-    FColor ambient;
-    ambient.r = material.ambient.r * Ia;
-    ambient.g = material.ambient.g * Ia;
-    ambient.b = material.ambient.b * Ia;
-
-    FColor I = diffuse + specular + ambient;
+    FColor I = diffuse + specular;
     I.normalize(); // 必ず実行する
 
-    Color color;
-    color.r = I.r * 0xff;
-    color.g = I.g * 0xff;
-    color.b = I.b * 0xff;
-
-    return color;
+    return I;
 }
 
 // 配列の先頭の要素を指すのが配列名
@@ -332,36 +327,16 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
             return scene->backgroundColor;
 
         // 輝度値
-        FColor luminance;
+        FColor luminance = FColor(0, 0, 0);
 
         bool useReflection = intersectionResult->shape->material.useReflection;
         bool useRefraction = intersectionResult->shape->material.useRefraction;
-
-
-        // 複数光源テスト用
-        for(size_t idx = 0; idx < scene->lightNum; idx++)
-        {
-        }
 
         // シャドウイング
         if (intersectionResult->intersectionPoint != nullptr)
         {
             // 影(0,0,0) or フォンシェーディング
             shadowing(scene, ray, intersectionResult, &luminance);
-
-            if (useRefraction && luminance.r == 0 && luminance.g == 0 && luminance.b == 0)
-            {
-                recordLine("%d : 影\n", recursiveLevel);
-            }
-            // if (luminance.r == 0 && luminance.g == 0 && luminance.b == 0)
-            // {
-            //     return FColor(1, 1, 1);
-            // }
-
-            recordLine("recursiveLevel = %d シャドウイングでの輝度\n", recursiveLevel);
-            recordLine("%d : luminance.r = %f\n", recursiveLevel, luminance.r);
-            recordLine("%d : luminance.g = %f\n", recursiveLevel, luminance.g);
-            recordLine("%d : luminance.b = %f\n", recursiveLevel, luminance.b);
         }
 
         // 鏡面反射
@@ -376,13 +351,6 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
             refraction(scene, ray, intersectionResult, &luminance, recursiveLevel);
         }
 
-        // 輝度を返す
-        // recordLine("recursiveLevel = %d での輝度\n", recursiveLevel);
-        // recordLine("%d : luminance.r = %f\n", recursiveLevel, luminance.r);
-        // recordLine("%d : luminance.g = %f\n", recursiveLevel, luminance.g);
-        // recordLine("%d : luminance.b = %f\n", recursiveLevel, luminance.b);
-        // if (recursiveLevel == 1)
-        //     recordLine("=================================\n");
         return luminance;
     }
 }
@@ -393,43 +361,95 @@ void shadowing(
     // シャドウレイによる交差判定
     IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
 
-    // 入射ベクトル 視点からみた光源
-    Vector3 incident =
-        (scene->pointLight->position - intersectionPoint->position);
-
-    // シャドウレイ
-    Ray shadowRay;
-    // 交差点を始点とするとその物体自身と交差したと判定されるため，
-    // 入射ベクトル(単位ベクトル)側に少しだけずらす
-    shadowRay.startPoint = intersectionPoint->position + EPSILON * incident.normalize();
-    shadowRay.direction = incident.normalize();
-
-    // 光源までの距離
-    float lightDistance = (scene->pointLight->position - shadowRay.startPoint).magnitude();
-
-    // シャドウレイとオブジェクトとの交差判定
-    IntersectionResult *shadowResult =
-        intersectionWithAll(
-            scene->geometry, scene->geometryNum, &shadowRay, lightDistance, true);
-
-    // 光源との間に交点が存在したら影にする
-    if (shadowResult->intersectionPoint != nullptr)
+    for (size_t idx = 0; idx < scene->lightNum; idx++)
     {
-        luminance->r = 0.f;
-        luminance->g = 0.f;
-        luminance->b = 0.f;
-    }
-    // そうでないならフォンシェーディング
-    else
-    {
-        FColor phong = phongShading(
-            *intersectionResult->intersectionPoint, *ray,
-            *(scene->pointLight), intersectionResult->shape->material);
-        luminance->r = phong.r;
-        luminance->g = phong.g;
-        luminance->b = phong.b;
+        Lighting lighting = scene->light[idx]->lightingAt(intersectionPoint->position);
+
+        // 入射ベクトル 視点からみた光源
+        Vector3 incident = lighting.direction;
+
+        // シャドウレイ
+        Ray shadowRay;
+        // 交差点を始点とするとその物体自身と交差したと判定されるため，
+        // 入射ベクトル(単位ベクトル)側に少しだけずらす
+        shadowRay.startPoint = intersectionPoint->position + EPSILON * incident.normalize();
+        shadowRay.direction = incident.normalize();
+
+        // 光源までの距離
+        float lightDistance = lighting.distance;
+
+        // シャドウレイとオブジェクトとの交差判定
+        IntersectionResult *shadowResult =
+            intersectionWithAll(
+                scene->geometry, scene->geometryNum, &shadowRay, lightDistance, true);
+
+        // 光源との間に交点が存在したら影にする
+        if (shadowResult->intersectionPoint == nullptr)
+        {
+            FColor phong = phongShading(
+                *intersectionPoint, *ray, lighting, intersectionResult->shape->material);
+            *luminance = *luminance + phong;
+            recordLine("phong.r = %f\n", phong.r);
+            recordLine("phong.g = %f\n", phong.g);
+            recordLine("phong.b = %f\n", phong.b);
+
+            if (idx == scene->lightNum - 1)
+            {
+                // 最後に環境光成分を加える
+                Material material = intersectionResult->shape->material;
+                *luminance = *luminance + material.ambient * scene->ambientIntensity;
+                recordLine("material.diffuse.r = %f\n", material.diffuse.r);
+                recordLine("material.diffuse.r = %f\n", material.diffuse.g);
+                recordLine("material.diffuse.r = %f\n", material.diffuse.b);
+                recordLine("====================================\n");
+            }
+        }
     }
 }
+
+// void shadowing(
+//     Scene *scene, Ray *ray, IntersectionResult *intersectionResult, FColor *luminance)
+// {
+//     // シャドウレイによる交差判定
+//     IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
+
+//     // 入射ベクトル 視点からみた光源
+//     Vector3 incident =
+//         (scene->pointLight->position - intersectionPoint->position);
+
+//     // シャドウレイ
+//     Ray shadowRay;
+//     // 交差点を始点とするとその物体自身と交差したと判定されるため，
+//     // 入射ベクトル(単位ベクトル)側に少しだけずらす
+//     shadowRay.startPoint = intersectionPoint->position + EPSILON * incident.normalize();
+//     shadowRay.direction = incident.normalize();
+
+//     // 光源までの距離
+//     float lightDistance = (scene->pointLight->position - shadowRay.startPoint).magnitude();
+
+//     // シャドウレイとオブジェクトとの交差判定
+//     IntersectionResult *shadowResult =
+//         intersectionWithAll(
+//             scene->geometry, scene->geometryNum, &shadowRay, lightDistance, true);
+
+//     // 光源との間に交点が存在したら影にする
+//     if (shadowResult->intersectionPoint != nullptr)
+//     {
+//         luminance->r = 0.f;
+//         luminance->g = 0.f;
+//         luminance->b = 0.f;
+//     }
+//     // そうでないならフォンシェーディング
+//     else
+//     {
+//         FColor phong = phongShading(
+//             *intersectionResult->intersectionPoint, *ray,
+//             *(scene->pointLight), intersectionResult->shape->material);
+//         luminance->r = phong.r;
+//         luminance->g = phong.g;
+//         luminance->b = phong.b;
+//     }
+// }
 
 void reflection(
     Scene *scene, Ray *ray,
@@ -579,10 +599,10 @@ void refraction(
     // 次の反射の輝度を取得
     FColor nextLuminance = RayTraceRecursive(scene, &specularReflectionRay, recursiveLevel + 1);
 
-    recordLine("正反射光の放射輝度\n");
-    recordLine("%d : nextLuminance.r = %f\n", recursiveLevel, nextLuminance.r);
-    recordLine("%d : nextLuminance.g = %f\n", recursiveLevel, nextLuminance.g);
-    recordLine("%d : nextLuminance.b = %f\n", recursiveLevel, nextLuminance.b);
+    // recordLine("正反射光の放射輝度\n");
+    // recordLine("%d : nextLuminance.r = %f\n", recursiveLevel, nextLuminance.r);
+    // recordLine("%d : nextLuminance.g = %f\n", recursiveLevel, nextLuminance.g);
+    // recordLine("%d : nextLuminance.b = %f\n", recursiveLevel, nextLuminance.b);
     if (nextLuminance.r != FLT_MAX)
     {
         // 完全鏡面反射輝度(正反射)計算
@@ -602,10 +622,10 @@ void refraction(
     // 屈折光の放射輝度計算
     // 次の反射の輝度を取得
     nextLuminance = RayTraceRecursive(scene, &refractionRay, recursiveLevel + 1);
-    recordLine("屈折光の放射輝度\n");
-    recordLine("%d : nextLuminance.r = %f\n", recursiveLevel, nextLuminance.r);
-    recordLine("%d : nextLuminance.g = %f\n", recursiveLevel, nextLuminance.g);
-    recordLine("%d : nextLuminance.b = %f\n", recursiveLevel, nextLuminance.b);
+    // recordLine("屈折光の放射輝度\n");
+    // recordLine("%d : nextLuminance.r = %f\n", recursiveLevel, nextLuminance.r);
+    // recordLine("%d : nextLuminance.g = %f\n", recursiveLevel, nextLuminance.g);
+    // recordLine("%d : nextLuminance.b = %f\n", recursiveLevel, nextLuminance.b);
 
     if (nextLuminance.r != FLT_MAX)
     {
@@ -615,9 +635,9 @@ void refraction(
         refractionLuminance.g = nextLuminance.g;
         refractionLuminance.b = nextLuminance.b;
 
-        recordLine("refractionLuminance.r = %f\n", refractionLuminance.r);
-        recordLine("refractionLuminance.g = %f\n", refractionLuminance.g);
-        recordLine("refractionLuminance.b = %f\n", refractionLuminance.b);
+        // recordLine("refractionLuminance.r = %f\n", refractionLuminance.r);
+        // recordLine("refractionLuminance.g = %f\n", refractionLuminance.g);
+        // recordLine("refractionLuminance.b = %f\n", refractionLuminance.b);
 
         // 最終放射輝度に加算
         luminance->r += reflection.r * ct * refractionLuminance.r;

@@ -49,6 +49,11 @@ struct FColor
         operationCount += 3;
         return FColor(r + color.r, g + color.g, b + color.b);
     }
+    FColor operator*(FColor color)
+    {
+        operationCount += 3;
+        return FColor(r * color.r, g * color.g, b * color.b);
+    }
     // 0〜1に正規化
     void normalize()
     {
@@ -191,13 +196,14 @@ struct DirectionalLight : Light
 
 struct Scene
 {
-    BitMapData *bitmap;
-    Shape **geometry;
-    int geometryNum;
-    Light **light;
-    Camera *camera;
-    PointLight *pointLight;
-    int lightNum;
+    BitMapData *bitmap; // ビットマップ
+    Camera *camera;     // カメラ
+    Shape **geometry;   // 表示するジオメトリ
+    int geometryNum;    // ジオメトリ数
+    Light **light;      // 光源
+    int lightNum;       // 光源の数
+    FColor ambientIntensity; // 環境の強さ
+
     FColor backgroundColor;
     float globalRefractionIndex;
     Scene()
@@ -217,7 +223,7 @@ Color phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight);
 
 // フォンシェーディング(バグってます)
-Color phongShading(
+FColor phongShading(
     IntersectionPoint intersectionPoint, Ray ray, Lighting lighting, Material material);
 
 // フォンシェーディング(マテリアル描画)

@@ -48,9 +48,12 @@ int main()
     camera.position = Vector3(0, 0, -5);
 
     // 点光源の位置を決める
-    PointLight pointLight;
-    pointLight.position = Vector3(0, 0.9, 2.5);
-    pointLight.intensity = FColor(1.f, 1.f, 1.f);
+    PointLight* pointLight = new PointLight();
+    pointLight->position = Vector3(0, 0.9, 2.5);
+    pointLight->intensity = FColor(1.f, 1.f, 1.f);
+
+    Light* lights[1];
+    lights[0] = pointLight;
 
     // シーン作成
     Scene scene;
@@ -59,7 +62,10 @@ int main()
     scene.geometry = geometry;
     scene.geometryNum = GEOMETRY_NUM;
     scene.backgroundColor = FColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f);
-    scene.pointLight = &pointLight;
+    scene.pointLight = pointLight;
+    scene.light = lights;
+    scene.lightNum = 1;
+    scene.ambientIntensity = FColor(0.1,0.1,0.1);
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める
