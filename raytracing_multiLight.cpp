@@ -1,7 +1,7 @@
 #include "raytracing_lib.hpp"
 
-#define GEOMETRY_NUM 2
-#define LIGHT_NUM 1
+#define GEOMETRY_NUM 6
+#define LIGHT_NUM 3
 
 int main()
 {
@@ -17,26 +17,26 @@ int main()
     // 描画オブジェクト
     Shape *geometry[GEOMETRY_NUM];
 
-    // // 球
-    // geometry[0] = new Sphere(Vector3(3, 0, 25), 1.f);
-    // geometry[1] = new Sphere(Vector3(2, 0, 20), 1.f);
-    // geometry[2] = new Sphere(Vector3(1, 0, 15), 1.f);
-    // geometry[3] = new Sphere(Vector3(0, 0, 10), 1.f);
-    // geometry[4] = new Sphere(Vector3(-1, 0, 5), 1.f);
-    // // マテリアルセット
-    // geometry[0]->material.diffuse = FColor(0.69f, 0.f, 0.f);
-    // geometry[1]->material.diffuse = FColor(0.f, 0.69f, 0.f);
-    // geometry[2]->material.diffuse = FColor(0.f, 0.f, 0.69f);
-    // geometry[3]->material.diffuse = FColor(0.f, 0.69f, 0.69f);
-    // geometry[4]->material.diffuse = FColor(0.69f, 0.f, 0.69f);
-    // // 平面
-    // geometry[5] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0));
-
     // 球
-    geometry[0] = new Sphere(Vector3(-1, 0, 5), 1.f);
-    geometry[0]->material.diffuse = FColor(0.69f, 0.f, 0.69f);
+    geometry[0] = new Sphere(Vector3(3, 0, 25), 1.f);
+    geometry[1] = new Sphere(Vector3(2, 0, 20), 1.f);
+    geometry[2] = new Sphere(Vector3(1, 0, 15), 1.f);
+    geometry[3] = new Sphere(Vector3(0, 0, 10), 1.f);
+    geometry[4] = new Sphere(Vector3(-1, 0, 5), 1.f);
+    // マテリアルセット
+    geometry[0]->material.diffuse = FColor(0.69f, 0.f, 0.f);
+    geometry[1]->material.diffuse = FColor(0.f, 0.69f, 0.f);
+    geometry[2]->material.diffuse = FColor(0.f, 0.f, 0.69f);
+    geometry[3]->material.diffuse = FColor(0.f, 0.69f, 0.69f);
+    geometry[4]->material.diffuse = FColor(0.69f, 0.f, 0.69f);
     // 平面
-    geometry[1] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0));
+    geometry[5] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0));
+
+    // // 球
+    // geometry[0] = new Sphere(Vector3(0, 0, 5), 1.f);
+    // geometry[0]->material.diffuse = FColor(0.69f, 0.f, 0.69f);
+    // // 平面
+    // geometry[1] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0));
 
     // 視点の位置を決める
     Camera camera;
@@ -51,7 +51,7 @@ int main()
 
     PointLight *point1 = new PointLight();
     point1->position = Vector3(-5, 5, -5);
-    point1->intensity = FColor(0.5, 0.5, 0.5);
+    point1->intensity = FColor(1, 1, 1);
     PointLight *point2 = new PointLight();
     point2->position = Vector3(5, 0, -5);
     point2->intensity = FColor(0.5, 0.5, 0.5);
@@ -60,8 +60,8 @@ int main()
     point3->intensity = FColor(0.5, 0.5, 0.5);
 
     lights[0] = point1;
-    // lights[1] = point2;
-    // lights[2] = point3;
+    lights[1] = point2;
+    lights[2] = point3;
 
     // シーン作成
     Scene scene;
@@ -107,7 +107,7 @@ int main()
         delete o;
     }
 
-    for(auto l : lights)
+    for (auto l : lights)
     {
         delete l;
     }

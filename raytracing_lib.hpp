@@ -148,6 +148,7 @@ struct Lighting
 struct Light
 {
     virtual Lighting lightingAt(Vector3 p) = 0;
+    virtual ~Light() {}
 };
 
 // 点光源
@@ -196,12 +197,12 @@ struct DirectionalLight : Light
 
 struct Scene
 {
-    BitMapData *bitmap; // ビットマップ
-    Camera *camera;     // カメラ
-    Shape **geometry;   // 表示するジオメトリ
-    int geometryNum;    // ジオメトリ数
-    Light **light;      // 光源
-    int lightNum;       // 光源の数
+    BitMapData *bitmap;      // ビットマップ
+    Camera *camera;          // カメラ
+    Shape **geometry;        // 表示するジオメトリ
+    int geometryNum;         // ジオメトリ数
+    Light **light;           // 光源
+    int lightNum;            // 光源の数
     FColor ambientIntensity; // 環境の強さ
 
     FColor backgroundColor;

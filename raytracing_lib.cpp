@@ -215,9 +215,9 @@ FColor phongShading(
     diffuse.g = lighting.intensity.g * material.diffuse.g * normal.dot(incident);
     diffuse.b = lighting.intensity.b * material.diffuse.b * normal.dot(incident);
     diffuse.normalize();
-    recordLine("diffuse.r = %f\n", diffuse.r);
-    recordLine("diffuse.g = %f\n", diffuse.g);
-    recordLine("diffuse.b = %f\n", diffuse.b);
+    // recordLine("diffuse.r = %f\n", diffuse.r);
+    // recordLine("diffuse.g = %f\n", diffuse.g);
+    // recordLine("diffuse.b = %f\n", diffuse.b);
 
     // スペキュラー
     // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
@@ -230,9 +230,9 @@ FColor phongShading(
     specular.g = lighting.intensity.g * material.specular.g * cos_a;
     specular.b = lighting.intensity.b * material.specular.b * cos_a;
     specular.normalize();
-    recordLine("specular.r = %f\n", specular.r);
-    recordLine("specular.g = %f\n", specular.g);
-    recordLine("specular.b = %f\n", specular.b);
+    // recordLine("specular.r = %f\n", specular.r);
+    // recordLine("specular.g = %f\n", specular.g);
+    // recordLine("specular.b = %f\n", specular.b);
 
     // 視線逆ベクトルと正反射ベクトルの内積もしくは，
     // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
@@ -389,19 +389,19 @@ void shadowing(
             FColor phong = phongShading(
                 *intersectionPoint, *ray, lighting, intersectionResult->shape->material);
             *luminance = *luminance + phong;
-            recordLine("phong.r = %f\n", phong.r);
-            recordLine("phong.g = %f\n", phong.g);
-            recordLine("phong.b = %f\n", phong.b);
+            // recordLine("phong.r = %f\n", phong.r);
+            // recordLine("phong.g = %f\n", phong.g);
+            // recordLine("phong.b = %f\n", phong.b);
 
             if (idx == scene->lightNum - 1)
             {
                 // 最後に環境光成分を加える
                 Material material = intersectionResult->shape->material;
                 *luminance = *luminance + material.ambient * scene->ambientIntensity;
-                recordLine("material.diffuse.r = %f\n", material.diffuse.r);
-                recordLine("material.diffuse.r = %f\n", material.diffuse.g);
-                recordLine("material.diffuse.r = %f\n", material.diffuse.b);
-                recordLine("====================================\n");
+                // recordLine("material.diffuse.r = %f\n", material.diffuse.r);
+                // recordLine("material.diffuse.r = %f\n", material.diffuse.g);
+                // recordLine("material.diffuse.r = %f\n", material.diffuse.b);
+                // recordLine("====================================\n");
             }
         }
     }

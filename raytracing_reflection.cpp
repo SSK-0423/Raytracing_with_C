@@ -1,6 +1,7 @@
 #include "raytracing_lib.hpp"
 
 #define GEOMETRY_NUM 7
+#define LIGHT_NUM 1
 
 int main()
 {
@@ -24,10 +25,10 @@ int main()
     geometry[0]->material.reflection = FColor(1.f, 1.f, 1.f);
     geometry[1] = new Sphere(Vector3(0.5, -0.65, 2), 0.35f);
     geometry[1]->material.diffuse = FColor(0.f, 1.f, 0.5f);
-    // geometry[1]->material =
-    //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
-    // geometry[1]->material.useReflection = true;
-    // geometry[1]->material.reflection = FColor(1.f, 1.f, 1.f);
+    geometry[1]->material =
+        Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
+    geometry[1]->material.useReflection = true;
+    geometry[1]->material.reflection = FColor(1.f, 1.f, 1.f);
 
     // 平面
     geometry[2] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0)); // 白い床
@@ -48,12 +49,22 @@ int main()
     camera.position = Vector3(0, 0, -5);
 
     // 点光源の位置を決める
-    PointLight* pointLight = new PointLight();
+    PointLight *pointLight = new PointLight();
     pointLight->position = Vector3(0, 0.9, 2.5);
     pointLight->intensity = FColor(1.f, 1.f, 1.f);
 
-    Light* lights[1];
+    PointLight *pointLight2 = new PointLight();
+    pointLight2->position = Vector3(0, 0.9, 2.5);
+    pointLight2->intensity = FColor(1.f, 1.f, 1.f);
+    DirectionalLight *directionalLight = new DirectionalLight();
+
+    directionalLight->direction = Vector3(0, -1, 0);
+    directionalLight->intensity = FColor(1, 1, 1);
+    Light *lights[LIGHT_NUM];
+
     lights[0] = pointLight;
+    // lights[1] = directionalLight;
+    // lights[2] = pointLight2;
 
     // シーン作成
     Scene scene;
@@ -62,10 +73,9 @@ int main()
     scene.geometry = geometry;
     scene.geometryNum = GEOMETRY_NUM;
     scene.backgroundColor = FColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f);
-    scene.pointLight = pointLight;
     scene.light = lights;
-    scene.lightNum = 1;
-    scene.ambientIntensity = FColor(0.1,0.1,0.1);
+    scene.lightNum = LIGHT_NUM;
+    scene.ambientIntensity = FColor(0.1, 0.1, 0.1);
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める
