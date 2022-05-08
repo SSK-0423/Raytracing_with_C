@@ -25,6 +25,9 @@ float myPow(float, int);
 // 絶対値
 float myAbsf(float);
 
+// [0〜1]の一様乱数生成
+float myRand();
+
 // 3次元ベクトル
 struct Vector3
 {
