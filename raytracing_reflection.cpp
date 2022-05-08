@@ -79,7 +79,7 @@ int main()
     scene.light = lights;
     scene.lightNum = LIGHT_NUM;
     scene.ambientIntensity = FColor(0.1, 0.1, 0.1);
-    scene.samplingNum = 25;
+    scene.samplingNum = 20;
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める

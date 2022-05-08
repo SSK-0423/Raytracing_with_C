@@ -1,9 +1,3 @@
 #!/bin/bash
 
-read file
-
-echo "clang++ "$file" raytracing_lib.cpp mymath.cpp myPng.cpp log.cpp -lpng"
-
-echo "./a.out"
-
-exit 0
+clang++ $1.cpp raytracing_lib.cpp mymath.cpp myPng.cpp log.cpp -lpng -o $1 && ./$1
