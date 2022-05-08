@@ -10,7 +10,7 @@ int main()
         return -1;
 
     // ビットマップデータ
-    BitMapData bitmap(1280, 1280, 3);
+    BitMapData bitmap(512, 512, 3);
     if (bitmap.allocation() == -1)
         return -1;
 
@@ -39,6 +39,9 @@ int main()
 
     // マテリアルセット
     geometry[2]->material.diffuse = FColor(1.f, 1.f, 1.f);
+    // geometry[2]->material.useReflection = true;
+    // geometry[2]->material.reflection = FColor(0.5, 0.5, 0.5);
+
     geometry[3]->material.diffuse = FColor(1.f, 1.f, 1.f);
     geometry[4]->material.diffuse = FColor(1.f, 0, 0);
     geometry[5]->material.diffuse = FColor(0, 0, 1.f);
@@ -76,6 +79,7 @@ int main()
     scene.light = lights;
     scene.lightNum = LIGHT_NUM;
     scene.ambientIntensity = FColor(0.1, 0.1, 0.1);
+    scene.samplingNum = 20;
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める
@@ -83,13 +87,19 @@ int main()
     {
         for (int x = 0; x < bitmap.width; x++)
         {
-            // レイを生成
-            Ray ray = createRay(camera, x, y, bitmap.width, bitmap.height);
-            FColor luminance = RayTrace(&scene, &ray);
+            FColor luminance = FColor(0, 0, 0);
+            for (int s = 0; s < scene.samplingNum; s++)
+            {
+                float u = (float(x) + myRand());
+                float v = (float(y) + myRand());
+                // レイを生成
+                Ray ray = createRay(camera, u, v, bitmap.width, bitmap.height);
+                luminance = luminance + RayTrace(&scene, &ray);
+            }
             Color color;
-            color.r = luminance.r * 0xff;
-            color.g = luminance.g * 0xff;
-            color.b = luminance.b * 0xff;
+            color.r = luminance.r / (float)scene.samplingNum * 0xff;
+            color.g = luminance.g / (float)scene.samplingNum * 0xff;
+            color.b = luminance.b / (float)scene.samplingNum * 0xff;
             drawDot(&bitmap, x, y, color);
         }
     }

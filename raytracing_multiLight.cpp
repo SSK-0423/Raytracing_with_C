@@ -3,14 +3,14 @@
 #define GEOMETRY_NUM 6
 #define LIGHT_NUM 3
 
-int main()
+int main(int argc, char *argv[])
 {
     // ログファイル初期化
-    if (initLogFile("log.txt") == 1)
+    if (initLogFile(argv[1]) == 1)
         return -1;
 
     // ビットマップデータ
-    BitMapData bitmap(1280, 1280, 3);
+    BitMapData bitmap(512, 512, 3);
     if (bitmap.allocation() == -1)
         return -1;
 
@@ -51,7 +51,7 @@ int main()
 
     PointLight *point1 = new PointLight();
     point1->position = Vector3(-5, 5, -5);
-    point1->intensity = FColor(1, 1, 1);
+    point1->intensity = FColor(0.5, 0.5, 0.5);
     PointLight *point2 = new PointLight();
     point2->position = Vector3(5, 0, -5);
     point2->intensity = FColor(0.5, 0.5, 0.5);
@@ -73,6 +73,7 @@ int main()
     scene.light = lights;
     scene.lightNum = LIGHT_NUM;
     scene.ambientIntensity = FColor(0.1, 0.1, 0.1);
+    scene.samplingNum = 1;
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める
