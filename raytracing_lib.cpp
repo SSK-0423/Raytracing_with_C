@@ -95,56 +95,6 @@ Vector3 Plane::calcNormal(Vector3 p1, Vector3 p2, Vector3 p3)
 }
 
 // 物体表面の光源の性質を使ってその点での色を決定する(シェーディング)
-Color phongShading(
-    IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight)
-{
-    // 法線ベクトル
-    Vector3 normal = intersectionPoint.normal;
-
-    // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
-    Vector3 incident =
-        (pointLight.position - intersectionPoint.position).normalize();
-
-    // 正反射ベクトル計算 r = 2(n・l)n - l
-    Vector3 specularReflection = 2 * normal.dot(incident) * normal - incident;
-
-    // 光源強度
-    float Ii = 1.f;
-
-    // ディフューズ(拡散反射光)
-    float kd = 0.69; // 拡散反射係数
-    float diffuse = Ii * kd * normal.dot(incident);
-    if (diffuse < 0)
-        diffuse = 0;
-
-    // スペキュラー
-    float ks = 0.3; // 鏡面反射係数
-    float a = 8;    // 光尺度
-
-    // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
-    Vector3 inverseEyeDir = ((-1) * ray.direction).normalize();
-    float specular = ks * Ii * myPow(inverseEyeDir.dot(specularReflection), a);
-    // 視線逆ベクトルと正反射ベクトルの内積もしくは，
-    // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
-    // 鏡面反射は「0」になる
-    if (inverseEyeDir.dot(specularReflection) < 0 || normal.dot(incident) < 0)
-        specular = 0;
-
-    // 環境光
-    float Ia = 0.1f;  // 環境光の強度
-    float ka = 0.01f; // 環境光反射係数
-    float ambient = Ia * ka;
-
-    float I = diffuse + specular + ambient;
-
-    Color color;
-    color.r = I * 0xff;
-    color.g = I * 0xff;
-    color.b = I * 0xff;
-
-    return color;
-}
-
 FColor phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight, Material material)
 {
@@ -200,9 +150,22 @@ FColor phongShading(
 FColor phongShading(
     IntersectionPoint intersectionPoint, Ray ray, Lighting lighting, Material material)
 {
+    bool isDebug = false;
+    if (material.diffuse.r == 0.69f &&
+        material.diffuse.g == 0.f &&
+        material.diffuse.b == 0.69f)
+    {
+        isDebug = true;
+    }
+
     // 法線ベクトル
     Vector3 normal = intersectionPoint.normal;
-
+    if (isDebug)
+    {
+        recordLine("normal.x = %f\n", normal.x);
+        recordLine("normal.y = %f\n", normal.y);
+        recordLine("normal.z = %f\n", normal.z);
+    }
     // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
     Vector3 incident = lighting.direction;
 
@@ -215,9 +178,12 @@ FColor phongShading(
     diffuse.g = lighting.intensity.g * material.diffuse.g * normal.dot(incident);
     diffuse.b = lighting.intensity.b * material.diffuse.b * normal.dot(incident);
     diffuse.normalize();
-    // recordLine("diffuse.r = %f\n", diffuse.r);
-    // recordLine("diffuse.g = %f\n", diffuse.g);
-    // recordLine("diffuse.b = %f\n", diffuse.b);
+    if (isDebug)
+    {
+        recordLine("diffuse.r = %f\n", diffuse.r);
+        recordLine("diffuse.g = %f\n", diffuse.g);
+        recordLine("diffuse.b = %f\n", diffuse.b);
+    }
 
     // スペキュラー
     // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
@@ -230,9 +196,12 @@ FColor phongShading(
     specular.g = lighting.intensity.g * material.specular.g * cos_a;
     specular.b = lighting.intensity.b * material.specular.b * cos_a;
     specular.normalize();
-    // recordLine("specular.r = %f\n", specular.r);
-    // recordLine("specular.g = %f\n", specular.g);
-    // recordLine("specular.b = %f\n", specular.b);
+    if (isDebug)
+    {
+        recordLine("specular.r = %f\n", specular.r);
+        recordLine("specular.g = %f\n", specular.g);
+        recordLine("specular.b = %f\n", specular.b);
+    }
 
     // 視線逆ベクトルと正反射ベクトルの内積もしくは，
     // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
@@ -406,50 +375,6 @@ void shadowing(
         }
     }
 }
-
-// void shadowing(
-//     Scene *scene, Ray *ray, IntersectionResult *intersectionResult, FColor *luminance)
-// {
-//     // シャドウレイによる交差判定
-//     IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
-
-//     // 入射ベクトル 視点からみた光源
-//     Vector3 incident =
-//         (scene->pointLight->position - intersectionPoint->position);
-
-//     // シャドウレイ
-//     Ray shadowRay;
-//     // 交差点を始点とするとその物体自身と交差したと判定されるため，
-//     // 入射ベクトル(単位ベクトル)側に少しだけずらす
-//     shadowRay.startPoint = intersectionPoint->position + EPSILON * incident.normalize();
-//     shadowRay.direction = incident.normalize();
-
-//     // 光源までの距離
-//     float lightDistance = (scene->pointLight->position - shadowRay.startPoint).magnitude();
-
-//     // シャドウレイとオブジェクトとの交差判定
-//     IntersectionResult *shadowResult =
-//         intersectionWithAll(
-//             scene->geometry, scene->geometryNum, &shadowRay, lightDistance, true);
-
-//     // 光源との間に交点が存在したら影にする
-//     if (shadowResult->intersectionPoint != nullptr)
-//     {
-//         luminance->r = 0.f;
-//         luminance->g = 0.f;
-//         luminance->b = 0.f;
-//     }
-//     // そうでないならフォンシェーディング
-//     else
-//     {
-//         FColor phong = phongShading(
-//             *intersectionResult->intersectionPoint, *ray,
-//             *(scene->pointLight), intersectionResult->shape->material);
-//         luminance->r = phong.r;
-//         luminance->g = phong.g;
-//         luminance->b = phong.b;
-//     }
-// }
 
 void reflection(
     Scene *scene, Ray *ray,

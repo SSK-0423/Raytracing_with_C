@@ -55,6 +55,17 @@ float myAbsf(float n)
     }
 }
 
+float myRand()
+{
+    static int x = 10;
+    int a = 1103515245;
+    int b = 12345;
+    int m = __INT_MAX__;
+    x = (a * x + b) & m;
+
+    float ret = ((float)x + 1.f) / ((float)m + 2.f);
+    return ret / (float)m;
+}
 // 乗算
 Vector3 operator*(float n, Vector3 vec)
 {

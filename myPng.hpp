@@ -22,7 +22,7 @@ struct Color
         unsigned char red, unsigned char green,
         unsigned char blue, unsigned char alpha = 1)
         : r(red), g(green), b(blue), a(alpha) {}
-    Color() {}
+    Color() : r(0), g(0), b(0), a(0) {}
 };
 
 // ピクセル構造体
