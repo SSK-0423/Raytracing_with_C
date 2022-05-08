@@ -90,8 +90,8 @@ int main()
             FColor luminance = FColor(0, 0, 0);
             for (int s = 0; s < scene.samplingNum; s++)
             {
-                float u = (float(x) + drand48());
-                float v = (float(y) + drand48());
+                float u = (float(x) + myRand());
+                float v = (float(y) + myRand());
                 // レイを生成
                 Ray ray = createRay(camera, u, v, bitmap.width, bitmap.height);
                 luminance = luminance + RayTrace(&scene, &ray);

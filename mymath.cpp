@@ -57,14 +57,14 @@ float myAbsf(float n)
 
 float myRand()
 {
-    static int x = 10;
-    int a = 1103515245;
-    int b = 12345;
-    int m = __INT_MAX__;
-    x = (a * x + b) & m;
+    static unsigned long long r = 1;
+    unsigned long long a = 1229;
+    unsigned long long c = 351750;
+    unsigned long long m = __INT_MAX__;
 
-    float ret = ((float)x + 1.f) / ((float)m + 2.f);
-    return ret / (float)m;
+    r = (a * r + c) % m;
+
+    return (float)r / (float)m;
 }
 // 乗算
 Vector3 operator*(float n, Vector3 vec)
