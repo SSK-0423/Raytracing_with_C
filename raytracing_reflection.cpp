@@ -1,10 +1,23 @@
 #include "raytracing_lib.hpp"
 
+//#define MPI
+
+#ifdef MPI
+#include "mpi.h"
+#endif
+
 #define GEOMETRY_NUM 7
 #define LIGHT_NUM 1
 
-int main()
+int main(int argc, char **argv)
 {
+#ifdef MPI
+    MPI_Status status;
+    MPI_Init(&argc, &argv);
+
+    double startTime, time;
+    startTime = MPI_Wtime();
+#endif
     // ログファイル初期化
     if (initLogFile("log.txt") == 1)
         return -1;
@@ -39,8 +52,6 @@ int main()
 
     // マテリアルセット
     geometry[2]->material.diffuse = FColor(1.f, 1.f, 1.f);
-    // geometry[2]->material.useReflection = true;
-    // geometry[2]->material.reflection = FColor(0.5, 0.5, 0.5);
 
     geometry[3]->material.diffuse = FColor(1.f, 1.f, 1.f);
     geometry[4]->material.diffuse = FColor(1.f, 0, 0);
@@ -56,18 +67,9 @@ int main()
     pointLight->position = Vector3(0, 0.9, 2.5);
     pointLight->intensity = FColor(1.f, 1.f, 1.f);
 
-    PointLight *pointLight2 = new PointLight();
-    pointLight2->position = Vector3(0, 0.9, 2.5);
-    pointLight2->intensity = FColor(1.f, 1.f, 1.f);
-    DirectionalLight *directionalLight = new DirectionalLight();
-
-    directionalLight->direction = Vector3(0, -1, 0);
-    directionalLight->intensity = FColor(1, 1, 1);
     Light *lights[LIGHT_NUM];
 
     lights[0] = pointLight;
-    // lights[1] = directionalLight;
-    // lights[2] = pointLight2;
 
     // シーン作成
     Scene scene;
@@ -79,7 +81,7 @@ int main()
     scene.light = lights;
     scene.lightNum = LIGHT_NUM;
     scene.ambientIntensity = FColor(0.1, 0.1, 0.1);
-    scene.samplingNum = 20;
+    scene.samplingNum = 30;
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める
@@ -120,7 +122,22 @@ int main()
         delete o;
     }
 
-    finalLogFile();
+    for(auto l : lights)
+    {
+        delete l;
+    }
 
+#ifdef MPI
+    time = MPI_Wtime() - startTime;
+
+    recordLine("実行時間: %f\n", time);
+
+
+    printf("Time tick = %16.6E seconds.\n", MPI_Wtick());
+
+    MPI_Finalize();
+#endif
+
+    finalLogFile();
     return 0;
 }
