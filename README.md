@@ -24,7 +24,7 @@ bash raytracingShell.sh raytracing_sample1
 ```
 
 ## 注意
-PNG画像の出力で __libpng__ を使用しているので,実行する際は導入をお願いします.
+PNG画像の出力で __libpng__ を使用しているので導入をお願いします.
 
 ## 実装で参考にさせていただいたサイト
 https://knzw.tech/raytracing/?page_id=1143 東京電機大学
