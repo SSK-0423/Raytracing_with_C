@@ -6,6 +6,7 @@ __大学の並列処理の講義で実装した古典的レイトレーシング
 - [x] 完全鏡面反射
 - [ ] 屈折
 - [ ] フォンの反射モデル⇨拡散反射
+- [ ] png出力⇨ppm出力
 
 ## レンダリング例
 - raytracing_sample1.cpp  
@@ -22,6 +23,9 @@ raytracing_sample1.cppを実行したい
 ```
 bash raytracingShell.sh raytracing_sample1
 ```
+
+## 注意
+PNG画像の出力で__libpng__を使用しているので,実行する際は導入をお願いします.
 
 ## 実装で参考にさせていただいたサイト
 https://knzw.tech/raytracing/?page_id=1143 東京電機大学
