@@ -1,4 +1,4 @@
-/*  数学系処理のヘッダ */
+/* 数学系処理のヘッダ */
 
 // 演算子の個数を数える
 static unsigned long long operationCount = 0;
@@ -24,6 +24,9 @@ float myPow(float, int);
 
 // 絶対値
 float myAbsf(float);
+
+// [0〜1]の一様乱数生成
+float myRand();
 
 // 3次元ベクトル
 struct Vector3

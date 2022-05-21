@@ -4,19 +4,28 @@
 #include "myPng.hpp"
 #include "mymath.hpp"
 #include "log.hpp"
+#include "TimeMeasure.h"
 
 // 使用しない
 #define ZBUFFER_MAX 1
 #define ZBUFFER_MIN 0
 
-#define MAX_RECURSIVE_LEVEL 2
+#define MAX_RECURSIVE_LEVEL 5
 static float EPSILON = 1.f / 512.f;
+
+#ifdef MPI
+#include <mpi.h>
+#endif
 
 // レイ
 struct Ray
 {
     Vector3 startPoint; // レイの始点
     Vector3 direction;  // 方向ベクトル
+    Ray()
+        : startPoint(Vector3(0, 0, 0)), direction(Vector3(0, 0, 0))
+    {
+    }
 };
 
 // 交点
@@ -24,9 +33,9 @@ struct IntersectionPoint
 {
     Vector3 position; // 交点の位置
     Vector3 normal;   // 交点における法線
-    ~IntersectionPoint()
+    IntersectionPoint()
+        : position(Vector3(0, 0, 0)), normal(Vector3(0, 0, 0))
     {
-        // recordLine("IntersectionPointのデストラクタが呼ばれました\n");
     }
 };
 
@@ -38,6 +47,7 @@ struct FColor
     float b;
 
     FColor()
+        : r(0), g(0), b(0)
     {
     }
     FColor(float red, float green, float blue)
@@ -45,6 +55,11 @@ struct FColor
     {
     }
     FColor operator+(FColor color)
+    {
+        operationCount += 3;
+        return FColor(r + color.r, g + color.g, b + color.b);
+    }
+    FColor operator+=(FColor color)
     {
         operationCount += 3;
         return FColor(r + color.r, g + color.g, b + color.b);
@@ -76,15 +91,15 @@ struct FColor
 // マテリアル
 struct Material
 {
-    FColor ambient;  // 環境光反射係数
-    FColor diffuse;  // 拡散反射係数
-    FColor specular; // 鏡面反射係数
-    float shininess; // 光尺度
+    FColor ambient;    // 環境光反射係数
+    FColor diffuse;    // 拡散反射係数
+    FColor specular;   // 鏡面反射係数
+    FColor reflection; // 完全鏡面反射係数
+    float shininess;   // 光尺度
+    float refractionIndex;
 
     bool useReflection; // 完全鏡面反射を使うかどうか
-    FColor reflection;  // 完全鏡面反射係数
     bool useRefraction; //
-    float refractionIndex;
     Material(FColor a = FColor(0.01f, 0.01f, 0.01f),
              FColor d = FColor(0.69f, 0.69f, 0.69f),
              FColor s = FColor(0.30f, 0.30f, 0.30f), float shi = 8.f,
@@ -143,6 +158,10 @@ struct Lighting
     float distance;
     FColor intensity;
     Vector3 direction;
+    Lighting()
+        : distance(0.f), intensity(FColor(1, 1, 1)), direction(Vector3(0, 0, 0))
+    {
+    }
 };
 
 struct Light
@@ -205,8 +224,9 @@ struct Scene
     int lightNum;            // 光源の数
     FColor ambientIntensity; // 環境の強さ
 
-    FColor backgroundColor;
-    float globalRefractionIndex;
+    FColor backgroundColor;      // 背景色
+    float globalRefractionIndex; // 大気中の絶対屈折率
+    unsigned int samplingNum;    // サンプリング数
     Scene()
     {
         globalRefractionIndex = 1.000293;
@@ -223,7 +243,7 @@ Vector3 screenToWorld(float x, float y, unsigned int width, unsigned int height)
 Color phongShading(
     IntersectionPoint intersectionPoint, Ray ray, PointLight pointLight);
 
-// フォンシェーディング(バグってます)
+// フォンシェーディング
 FColor phongShading(
     IntersectionPoint intersectionPoint, Ray ray, Lighting lighting, Material material);
 
@@ -236,15 +256,14 @@ struct IntersectionResult
 {
     IntersectionPoint *intersectionPoint = nullptr;
     Shape *shape = nullptr;
+    IntersectionResult() : intersectionPoint(nullptr), shape(nullptr)
+    {
+    }
     ~IntersectionResult()
     {
         if (intersectionPoint != nullptr)
             delete intersectionPoint;
         intersectionPoint = nullptr;
-
-        if (shape != nullptr)
-            delete shape;
-        shape = nullptr;
     }
 };
 
@@ -264,6 +283,9 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel);
 // 影生成
 void shadowing(
     Scene *scene, Ray *ray, IntersectionResult *intersectionResult, FColor *luminance);
+
+// 影かどうか判定
+bool isShadow(Scene *scene, Ray *ray, IntersectionResult *intersectionResult);
 
 // 鏡面反射計算
 void reflection(

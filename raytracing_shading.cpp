@@ -1,6 +1,9 @@
 #include "raytracing_lib.hpp"
 #include "log.hpp"
 
+#define GEOMETRY_NUM 1
+#define LIGHT_NUM 1
+
 int main()
 {
     // ログファイル初期化
@@ -13,16 +16,34 @@ int main()
         return -1;
 
     // 描画オブジェクト
+    Shape *geometry[GEOMETRY_NUM];
     // 球
-    Sphere sphere = Sphere(Vector3(1, 0, 5), 1.f);
+    geometry[0] = new Sphere(Vector3(0, 0, 5), 1.f);
 
     // 視点の位置を決める
     Camera camera;
     camera.position = Vector3(0, 0, -5);
 
     // 点光源の位置を決める
-    PointLight pointLight;
-    pointLight.position = Vector3(-5, 5, -5);
+    PointLight *pointLight = new PointLight();
+    pointLight->position = Vector3(0, 0.9, 2.5);
+    pointLight->intensity = FColor(1.f, 1.f, 1.f);
+
+    Light *lights[LIGHT_NUM];
+
+    lights[0] = pointLight;
+
+    // シーン作成
+    Scene scene;
+    scene.bitmap = &bitmap;
+    scene.camera = &camera;
+    scene.geometry = geometry;
+    scene.geometryNum = GEOMETRY_NUM;
+    scene.backgroundColor = FColor(100.f / 255.f, 149.f / 255.f, 237.f / 255.f);
+    scene.light = lights;
+    scene.lightNum = LIGHT_NUM;
+    scene.ambientIntensity = FColor(0.1, 0.1, 0.1);
+    scene.samplingNum = 100;
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める
@@ -30,70 +51,20 @@ int main()
     {
         for (int x = 0; x < bitmap.width; x++)
         {
-            // レイを生成
-            Ray ray = createRay(camera, x, y, bitmap.width, bitmap.height);
-            // recordLine("視点:(%4.2f,%4.2f,%4.2f) 視線:(%4.2f,%4.2f,%4.2f),注視点:(%d,%d)\n",
-            //            ray.startPoint.x, ray.startPoint.y, ray.startPoint.z,
-            //            ray.direction.x, ray.direction.y, ray.direction.z, x, y);
-
-            // レイと球の交点
-            IntersectionPoint *intersectionPoint = sphere.isIntersectionRay(&ray);
-
-            // レイと球が交差するか判定+交点があれば計算
-            if (intersectionPoint != nullptr)
+            FColor luminance = FColor(0, 0, 0);
+            for (int s = 0; s < scene.samplingNum; s++)
             {
-                // 物体表面の光源の性質を使ってその点での色を決定する(シェーディング)
-
-                // 球の法線ベクトルを求める
-                Vector3 normal = intersectionPoint->normal;
-
-                // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
-                Vector3 incident = (pointLight.position - intersectionPoint->position).normalize();
-
-                // 正反射ベクトル計算 r = 2(n・l)n - l
-                Vector3 specularReflection = 2 * normal.dot(incident) * normal - incident;
-
-                // 光源強度
-                float Ii = 1.f;
-
-                // ディフューズ(拡散反射光)
-                float kd = 0.69; // 拡散反射係数
-                float diffuse = Ii * kd * normal.dot(incident);
-                if (diffuse < 0)
-                    diffuse = 0;
-                // recordLine("ディフューズ%f\n", diffuse);
-
-                // スペキュラー
-                float ks = 0.3; // 鏡面反射係数
-                float a = 8;    // 光尺度
-
-                // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
-                Vector3 inverseEyeDir = ((-1) * ray.direction).normalize();
-                float specular = ks * Ii * myPow(inverseEyeDir.dot(specularReflection), a);
-                // 視線逆ベクトルと正反射ベクトルの内積もしくは，
-                // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
-                // 鏡面反射は「0」になる
-                if (inverseEyeDir.dot(specularReflection) < 0 || normal.dot(incident) < 0)
-                    specular = 0;
-
-                // 環境光
-                float Ia = 0.1f;  // 環境光の強度
-                float ka = 0.01f; // 環境光反射係数
-                float ambient = Ia * ka;
-
-                float I = diffuse + specular + ambient;
-
-                Color color;
-                color.r = I * 0x00;
-                color.g = I * 0xff;
-                color.b = I * 0x80;
-
-                drawDot(&bitmap, x, y, color);
+                float u = (float(x) + drand48());
+                float v = (float(y) + drand48());
+                // レイを生成
+                Ray ray = createRay(camera, u, v, bitmap.width, bitmap.height);
+                luminance = luminance + RayTrace(&scene, &ray);
             }
-            else
-            {
-                drawDot(&bitmap, x, y, Color(100, 149, 237));
-            }
+            Color color;
+            color.r = luminance.r / (float)scene.samplingNum * 0xff;
+            color.g = luminance.g / (float)scene.samplingNum * 0xff;
+            color.b = luminance.b / (float)scene.samplingNum * 0xff;
+            drawDot(&bitmap, x, y, color);
         }
     }
 
