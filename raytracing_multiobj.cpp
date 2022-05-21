@@ -41,6 +41,7 @@ int main()
     PointLight pointLight;
     pointLight.position = Vector3(-5, 5, -5);
     pointLight.intensity = FColor(1.f, 1.f, 1.f);
+    
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める

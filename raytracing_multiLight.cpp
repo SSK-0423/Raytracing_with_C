@@ -6,7 +6,7 @@
 int main(int argc, char *argv[])
 {
     // ログファイル初期化
-    if (initLogFile(argv[1]) == 1)
+    if (initLogFile("log.txt") == 1)
         return -1;
 
     // ビットマップデータ

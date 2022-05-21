@@ -4,13 +4,18 @@
 #include "myPng.hpp"
 #include "mymath.hpp"
 #include "log.hpp"
+#include "TimeMeasure.h"
 
 // 使用しない
 #define ZBUFFER_MAX 1
 #define ZBUFFER_MIN 0
 
-#define MAX_RECURSIVE_LEVEL 2
+#define MAX_RECURSIVE_LEVEL 5
 static float EPSILON = 1.f / 512.f;
+
+#ifdef MPI
+#include <mpi.h>
+#endif
 
 // レイ
 struct Ray
@@ -251,15 +256,14 @@ struct IntersectionResult
 {
     IntersectionPoint *intersectionPoint = nullptr;
     Shape *shape = nullptr;
+    IntersectionResult() : intersectionPoint(nullptr), shape(nullptr)
+    {
+    }
     ~IntersectionResult()
     {
         if (intersectionPoint != nullptr)
             delete intersectionPoint;
         intersectionPoint = nullptr;
-
-        if (shape != nullptr)
-            delete shape;
-        shape = nullptr;
     }
 };
 
@@ -279,6 +283,9 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel);
 // 影生成
 void shadowing(
     Scene *scene, Ray *ray, IntersectionResult *intersectionResult, FColor *luminance);
+
+// 影かどうか判定
+bool isShadow(Scene *scene, Ray *ray, IntersectionResult *intersectionResult);
 
 // 鏡面反射計算
 void reflection(

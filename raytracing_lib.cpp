@@ -219,7 +219,15 @@ FColor phongShading(
 // 先頭の要素（ポインタ）の位置を指しているのでダブルポインタ
 IntersectionResult *intersectionWithAll(Shape **geometry, int geometryNum, Ray *ray)
 {
-    return intersectionWithAll(geometry, geometryNum, ray, FLT_MAX, false);
+#ifdef MPI
+    double start = MPI_Wtime();
+#endif
+    IntersectionResult *result = intersectionWithAll(geometry, geometryNum, ray, FLT_MAX, false);
+#ifdef MPI
+    double end = MPI_Wtime();
+    evaluateTime.intersectionTime += end - start;
+#endif
+    return result;
 }
 
 IntersectionResult *intersectionWithAll(
@@ -261,11 +269,15 @@ IntersectionResult *intersectionWithAll(
 
             // 先に交点が代入されていたらメモリ解放する
             if (result->intersectionPoint != nullptr)
+            {
                 delete result->intersectionPoint;
+                result->intersectionPoint = nullptr;
+            }
 
             // 交点のメモリを確保してpointの中身をコピーする
             result->intersectionPoint = new IntersectionPoint();
             memmove(result->intersectionPoint, point, sizeof(IntersectionPoint));
+            delete point;
         }
     }
 
@@ -274,7 +286,15 @@ IntersectionResult *intersectionWithAll(
 
 FColor RayTrace(Scene *scene, Ray *ray)
 {
-    return RayTraceRecursive(scene, ray, 1);
+#ifdef MPI
+    double startTime;
+    startTime = MPI_Wtime();
+#endif
+    FColor raytraceColor = RayTraceRecursive(scene, ray, 1);
+#ifdef MPI
+    evaluateTime.raytraceTime = MPI_Wtime() - startTime;
+#endif
+    return raytraceColor;
 }
 
 FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
@@ -293,20 +313,21 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
             intersectionWithAll(scene->geometry, scene->geometryNum, ray);
 
         if (intersectionResult->intersectionPoint == nullptr)
+        {
+            delete intersectionResult;
             return scene->backgroundColor;
+        }
 
         // 輝度値
         FColor luminance = FColor(0, 0, 0);
-
         bool useReflection = intersectionResult->shape->material.useReflection;
         bool useRefraction = intersectionResult->shape->material.useRefraction;
 
         // シャドウイング
-        if (intersectionResult->intersectionPoint != nullptr)
-        {
-            // 影(0,0,0) or フォンシェーディング
+        // 影(0,0,0) or フォンシェーディング
+        // 鏡面反射のバグを修正⇨屈折のバグも修正されるのでは
+        if (!useReflection || !useRefraction)
             shadowing(scene, ray, intersectionResult, &luminance);
-        }
 
         // 鏡面反射
         if (useReflection)
@@ -320,12 +341,66 @@ FColor RayTraceRecursive(Scene *scene, Ray *ray, unsigned int recursiveLevel)
             refraction(scene, ray, intersectionResult, &luminance, recursiveLevel);
         }
 
+        if(intersectionResult != nullptr)
+            delete intersectionResult;
+
+        // (0.f 〜 1.f)に正規化
+        // これをしないとピクセル値がオーバーフローする
+        luminance.normalize();
+
         return luminance;
     }
 }
 
 void shadowing(
     Scene *scene, Ray *ray, IntersectionResult *intersectionResult, FColor *luminance)
+{
+    // シャドウレイによる交差判定
+    IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
+    IntersectionResult *shadowResult = nullptr;
+
+    for (size_t idx = 0; idx < scene->lightNum; idx++)
+    {
+        Lighting lighting = scene->light[idx]->lightingAt(intersectionPoint->position);
+
+        // 入射ベクトル 視点からみた光源
+        Vector3 incident = lighting.direction;
+
+        // シャドウレイ
+        Ray shadowRay;
+        // 交差点を始点とするとその物体自身と交差したと判定されるため，
+        // 入射ベクトル(単位ベクトル)側に少しだけずらす
+        shadowRay.startPoint = intersectionPoint->position + EPSILON * incident.normalize();
+        shadowRay.direction = incident.normalize();
+
+        // 光源までの距離
+        float lightDistance = lighting.distance;
+
+        // シャドウレイとオブジェクトとの交差判定
+        shadowResult =
+            intersectionWithAll(
+                scene->geometry, scene->geometryNum, &shadowRay, lightDistance, true);
+
+        // 光源との間に交点が存在しない場合(影でない)はフォンシェーディング
+        if (shadowResult->intersectionPoint == nullptr)
+        {
+            FColor phong = phongShading(
+                *intersectionPoint, *ray, lighting, intersectionResult->shape->material);
+            *luminance = *luminance + phong;
+
+            if (idx == scene->lightNum - 1)
+            {
+                // 最後に環境光成分を加える
+                Material material = intersectionResult->shape->material;
+                *luminance = *luminance + material.ambient * scene->ambientIntensity;
+            }
+        }
+        if (shadowResult != nullptr)
+            delete shadowResult;
+    }
+}
+
+bool isShadow(Scene *scene, Ray *ray, IntersectionResult *intersectionResult)
 {
     // シャドウレイによる交差判定
     IntersectionPoint *intersectionPoint = intersectionResult->intersectionPoint;
@@ -353,27 +428,12 @@ void shadowing(
                 scene->geometry, scene->geometryNum, &shadowRay, lightDistance, true);
 
         // 光源との間に交点が存在したら影にする
-        if (shadowResult->intersectionPoint == nullptr)
+        if (shadowResult->intersectionPoint != nullptr)
         {
-            FColor phong = phongShading(
-                *intersectionPoint, *ray, lighting, intersectionResult->shape->material);
-            *luminance = *luminance + phong;
-            // recordLine("phong.r = %f\n", phong.r);
-            // recordLine("phong.g = %f\n", phong.g);
-            // recordLine("phong.b = %f\n", phong.b);
-
-            if (idx == scene->lightNum - 1)
-            {
-                // 最後に環境光成分を加える
-                Material material = intersectionResult->shape->material;
-                *luminance = *luminance + material.ambient * scene->ambientIntensity;
-                // recordLine("material.diffuse.r = %f\n", material.diffuse.r);
-                // recordLine("material.diffuse.r = %f\n", material.diffuse.g);
-                // recordLine("material.diffuse.r = %f\n", material.diffuse.b);
-                // recordLine("====================================\n");
-            }
+            return true;
         }
     }
+    return false;
 }
 
 void reflection(
