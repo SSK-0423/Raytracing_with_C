@@ -1,7 +1,7 @@
 #include "raytracing_lib.hpp"
 
-#define GEOMETRY_NUM 7
-#define LIGHT_NUM 1
+#define GEOMETRY_NUM 50
+#define LIGHT_NUM 3
 #define EVALUATE_NUM 10
 #define SCALE 1024
 
@@ -42,20 +42,69 @@ int main(int argc, char **argv)
     geometry[1]->material.reflection = FColor(1.f, 1.f, 1.f);
     // geometry[1]->material.useRefraction = true;
     // geometry[1]->material.refractionIndex = 1.51;
+    geometry[3] = new Sphere(Vector3(-0.7, -0.65, 15), 0.35f);
+    geometry[3]->material.diffuse = FColor(0.f, 0.5f, 1.f);
+
+    geometry[4] = new Sphere(Vector3(-0.1, -0.65, 20), 0.35f);
+    geometry[4]->material =
+        Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
+    geometry[4]->material.useReflection = true;
+    geometry[4]->material.reflection = FColor(1.f, 1.f, 1.f);
+
+    for (int i = 5; i < GEOMETRY_NUM; i++)
+    {
+        geometry[i] =
+            new Sphere(Vector3(10 * myRand() - 5.f, 2 * myRand() - 0.65f, 40 * myRand()),
+                       0.5f * myRand());
+        if (myRand() <= 0.1f)
+        {
+            geometry[i]->material =
+                Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f));
+            geometry[i]->material.useReflection = true;
+            geometry[i]->material.reflection = FColor(1.f, 1.f, 1.f);
+        }
+        else
+        {
+            geometry[i]->material.diffuse = FColor(myRand(), myRand(), myRand());
+            geometry[i]->material.specular = FColor(myRand(), myRand(), myRand());
+            geometry[i]->material.ambient = FColor(myRand(), myRand(), myRand());
+            geometry[i]->material.shininess = 40 * myRand();
+        }
+    }
 
     // 平面
     geometry[2] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0)); // 白い床
-    geometry[3] = new Plane(Vector3(0, -1, 0), Vector3(0, 1, 0)); // 白い天井
-    geometry[4] = new Plane(Vector3(1, 0, 0), Vector3(-1, 0, 0)); // 赤い壁
-    geometry[5] = new Plane(Vector3(-1, 0, 0), Vector3(1, 0, 0)); // 青の壁
-    geometry[6] = new Plane(Vector3(0, 0, -1), Vector3(0, 0, 5)); // 白い壁
+    // geometry[3] = new Plane(Vector3(0, -1, 0), Vector3(0, 1, 0)); // 白い天井
+    // geometry[4] = new Plane(Vector3(1, 0, 0), Vector3(-1, 0, 0)); // 赤い壁
+    // geometry[5] = new Plane(Vector3(-1, 0, 0), Vector3(1, 0, 0)); // 青の壁
+    // geometry[6] = new Plane(Vector3(0, 0, 0), Vector3(0, 0, 0)); // 白い壁
 
     // マテリアルセット
     geometry[2]->material.diffuse = FColor(0.7f, 0.7f, 0.7f);
-    geometry[3]->material.diffuse = FColor(0.7f, 0.7f, 0.7f);
-    geometry[4]->material.diffuse = FColor(1.f, 0.4f, 0.4f);
-    geometry[5]->material.diffuse = FColor(0.4f, 0.4f, 1.f);
-    geometry[6]->material.diffuse = FColor(0.7f, 0.7f, 0.7f);
+    // geometry[2]->material =
+    //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
+    // geometry[2]->material.useReflection = true;
+    // geometry[2]->material.reflection = FColor(1.f, 1.f, 1.f);
+
+    // geometry[3]->material.diffuse = FColor(0.7f, 0.7f, 0.7f);
+    // geometry[3]->material =
+    //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
+    // geometry[3]->material.useReflection = true;
+    // geometry[3]->material.reflection = FColor(1.f, 1.f, 1.f);
+
+    // geometry[4]->material.diffuse = FColor(1.f, 0.4f, 0.4f);
+
+    // geometry[5]->material.diffuse = FColor(0.4f, 0.4f, 1.f);
+    // geometry[5]->material =
+    //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
+    // geometry[5]->material.useReflection = true;
+    // geometry[5]->material.reflection = FColor(1.f, 1.f, 1.f);
+
+    // geometry[6]->material.diffuse = FColor(0.7f, 0.7f, 0.7f);
+    // geometry[6]->material =
+    //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
+    // geometry[6]->material.useReflection = true;
+    // geometry[6]->material.reflection = FColor(1.f, 1.f, 1.f);
 
     // 視点の位置を決める
     Camera camera;
@@ -63,21 +112,23 @@ int main(int argc, char **argv)
 
     // 点光源の位置を決める
     PointLight *pointLight = new PointLight();
-    pointLight->position = Vector3(0, 0.9, 2.5);
-    pointLight->intensity = FColor(1.f, 1.f, 1.f);
+    pointLight->position = Vector3(0, 1, 2.5);
+    pointLight->intensity = FColor(.8f, .8f, .8f);
     PointLight *point2 = new PointLight();
     point2->position = Vector3(5, 0, -5);
     point2->intensity = FColor(1.2, 1.2, 1.2);
     PointLight *point1 = new PointLight();
-    point1->position = Vector3(0.3, 0.5, 2.5);
+    point1->position = Vector3(-5, 5, -5);
     point1->intensity = FColor(0.5, 0.5, 0.5);
     DirectionalLight *directional = new DirectionalLight();
-    directional->direction = Vector3(0, 1, 0);
+    directional->direction = Vector3(2, 0, 1);
     directional->intensity = FColor(1.f, 1.f, 1.f);
 
     Light *lights[LIGHT_NUM];
 
-    lights[0] = pointLight;
+    lights[0] = point1;
+    lights[1] = directional;
+    lights[2] = point2;
 
     // シーン作成
     Scene scene;
@@ -125,7 +176,7 @@ int main(int argc, char **argv)
     evaluateTime.encodePngTime = MPI_Wtime();
 #endif
     // PNGに変換してファイル保存
-    if (pngFileEncodeWrite(&bitmap, "raytracing_reflection.png") == -1)
+    if (pngFileEncodeWrite(&bitmap, "raytracing_reflection_sandbox.png") == -1)
     {
         freeBitmapData(&bitmap);
         return -1;
