@@ -11,11 +11,10 @@
 
 ## 実行方法
 実行を容易にするためのシェルスクリプトを用意したのでそれを使うといいと思います
-
+```
 bash raytracingShell.sh [実行するレイトレーシングプログラム]
-例:
-raytracing_sample1.cppを実行したい
+例: raytracing_sample1.cppを実行したい
 bash raytracingShell.sh raytracing_sample1
-
+```
 ## 実装で参考にしたサイト
 https://knzw.tech/raytracing/?page_id=1143
