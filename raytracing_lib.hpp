@@ -4,7 +4,6 @@
 #include "myPng.hpp"
 #include "mymath.hpp"
 #include "log.hpp"
-#include "TimeMeasure.h"
 
 // 使用しない
 #define ZBUFFER_MAX 1
@@ -12,10 +11,6 @@
 
 #define MAX_RECURSIVE_LEVEL 5
 static float EPSILON = 1.f / 512.f;
-
-#ifdef MPI
-#include <mpi.h>
-#endif
 
 // レイ
 struct Ray
