@@ -1,9 +1,9 @@
 #include "raytracing_lib.hpp"
 
-#define GEOMETRY_NUM 7
+#define GEOMETRY_NUM 100
 #define LIGHT_NUM 1
 #define EVALUATE_NUM 10
-#define SCALE 1024
+#define SCALE 512
 
 int main(int argc, char **argv)
 {
@@ -28,34 +28,22 @@ int main(int argc, char **argv)
     // 描画オブジェクト
     Shape *geometry[GEOMETRY_NUM];
 
-    // 球
-    geometry[0] = new Sphere(Vector3(-0.4, -0.65, 3), 0.35f);
-    geometry[0]->material =
-        Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
-    geometry[0]->material.useReflection = true;
-    geometry[0]->material.reflection = FColor(1.f, 1.f, 1.f);
-    geometry[1] = new Sphere(Vector3(0.5, -0.65, 2), 0.35f);
-    geometry[1]->material =
-        Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
-    // geometry[1]->material.diffuse = FColor(0.4f, 1.f, 0.4f);
-    geometry[1]->material.useReflection = true;
-    geometry[1]->material.reflection = FColor(1.f, 1.f, 1.f);
-    // geometry[1]->material.useRefraction = true;
-    // geometry[1]->material.refractionIndex = 1.51;
-
     // 平面
-    geometry[2] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0)); // 白い床
-    geometry[3] = new Plane(Vector3(0, -1, 0), Vector3(0, 1, 0)); // 白い天井
-    geometry[4] = new Plane(Vector3(1, 0, 0), Vector3(-1, 0, 0)); // 赤い壁
-    geometry[5] = new Plane(Vector3(-1, 0, 0), Vector3(1, 0, 0)); // 青の壁
-    geometry[6] = new Plane(Vector3(0, 0, -1), Vector3(0, 0, 5)); // 白い壁
+    geometry[0] = new Plane(Vector3(0, 1, 0), Vector3(0, -1, 0));
 
-    // マテリアルセット
-    geometry[2]->material.diffuse = FColor(0.7f, 0.7f, 0.7f);
-    geometry[3]->material.diffuse = FColor(0.7f, 0.7f, 0.7f);
-    geometry[4]->material.diffuse = FColor(1.f, 0.4f, 0.4f);
-    geometry[5]->material.diffuse = FColor(0.4f, 0.4f, 1.f);
-    geometry[6]->material.diffuse = FColor(0.7f, 0.7f, 0.7f);
+    // 球
+    for (int i = 1; i < GEOMETRY_NUM; i++)
+    {
+        geometry[i] = new Sphere(Vector3(75 * myRand(), 2 * myRand(), 30 * myRand()), 0.35f * myRand());
+        FColor random = FColor(1.f * myRand(), 1.f * myRand(), 1.f * myRand());
+        geometry[i]->material =
+            Material(random, random, random, myRand());
+        if (100 * myRand() <= 20)
+        {
+            geometry[i]->material.useReflection = true;
+            geometry[i]->material.reflection = FColor(1.f, 1.f, 1.f);
+        }
+    }
 
     // 視点の位置を決める
     Camera camera;
@@ -65,15 +53,6 @@ int main(int argc, char **argv)
     PointLight *pointLight = new PointLight();
     pointLight->position = Vector3(0, 0.9, 2.5);
     pointLight->intensity = FColor(1.f, 1.f, 1.f);
-    PointLight *point2 = new PointLight();
-    point2->position = Vector3(5, 0, -5);
-    point2->intensity = FColor(1.2, 1.2, 1.2);
-    PointLight *point1 = new PointLight();
-    point1->position = Vector3(0.3, 0.5, 2.5);
-    point1->intensity = FColor(0.5, 0.5, 0.5);
-    DirectionalLight *directional = new DirectionalLight();
-    directional->direction = Vector3(0, 1, 0);
-    directional->intensity = FColor(1.f, 1.f, 1.f);
 
     Light *lights[LIGHT_NUM];
 
@@ -125,7 +104,7 @@ int main(int argc, char **argv)
     evaluateTime.encodePngTime = MPI_Wtime();
 #endif
     // PNGに変換してファイル保存
-    if (pngFileEncodeWrite(&bitmap, "raytracing_reflection.png") == -1)
+    if (pngFileEncodeWrite(&bitmap, "raytracing_evaluate.png") == -1)
     {
         freeBitmapData(&bitmap);
         return -1;
@@ -149,9 +128,8 @@ int main(int argc, char **argv)
 
     printf("総実行時間: %.2f\n", evaluateTime.totalTime);
     printf("レイトレーシング時間: %.2f\n", evaluateTime.raytraceTime);
-    // printf("交差判定時間:%.2f\n", evaluateTime.intersectionTime);
+    printf("交差判定時間:%.2f\n", evaluateTime.intersectionTime);
     printf("PNG出力時間: %.2f\n", evaluateTime.encodePngTime);
-    printf("------------------------------------\n");
 
     MPI_Finalize();
 #endif

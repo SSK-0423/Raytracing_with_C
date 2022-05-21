@@ -1,4 +1,4 @@
-/*  数学系処理のヘッダ */
+/* 数学系処理のヘッダ */
 
 // 演算子の個数を数える
 static unsigned long long operationCount = 0;
