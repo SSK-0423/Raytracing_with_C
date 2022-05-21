@@ -16,5 +16,5 @@ bash raytracingShell.sh [実行するレイトレーシングプログラム]
 例: raytracing_sample1.cppを実行したい
 bash raytracingShell.sh raytracing_sample1
 ```
-## 実装で参考にしたサイト
+## 実装で参考にさせていただいたサイト
 https://knzw.tech/raytracing/?page_id=1143
