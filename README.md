@@ -1,7 +1,4 @@
 # Raytracing_with_Cpp
-<<<<<<< HEAD
-masterブランチでの配布用に不要なファイルの削除などを行うためのブランチ
-=======
 並列処理の講義で実装した古典的なレイトレーシング  
 2022/5/21現在,鏡面反射までの実装
 
@@ -21,4 +18,3 @@ bash raytracingShell.sh raytracing_sample1
 ```
 ## 実装で参考にさせていただいたサイト
 https://knzw.tech/raytracing/?page_id=1143
->>>>>>> master
