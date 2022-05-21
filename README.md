@@ -17,7 +17,7 @@ __並列処理の講義で実装した古典的レイトレーシング__
 bash raytracingShell.sh [実行したいレイトレーシングプログラム]
 ```
 ### 使用例
-raytracing_sample1.cppを実行したい
+raytracing_sample1.cppを実行したいとき
 ```
 bash raytracingShell.sh raytracing_sample1
 ```
