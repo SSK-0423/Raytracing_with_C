@@ -46,7 +46,6 @@ IntersectionPoint *Sphere::isIntersectionRay(Ray *ray)
     {
         float t1 = calcQuadraticFormula(a, b, c, FIRST_SOLUTION);
         float t2 = calcQuadraticFormula(a, b, c, SECOND_SOLUTION);
-        // recordLine("t1:%lf, t2:%lf\n", t1, t2);
         if (t1 > 0 || t2 > 0)
         {
             // 交点は値が小さい方を採用
@@ -150,22 +149,9 @@ FColor phongShading(
 FColor phongShading(
     IntersectionPoint intersectionPoint, Ray ray, Lighting lighting, Material material)
 {
-    bool isDebug = false;
-    if (material.diffuse.r == 0.69f &&
-        material.diffuse.g == 0.f &&
-        material.diffuse.b == 0.69f)
-    {
-        isDebug = true;
-    }
-
     // 法線ベクトル
     Vector3 normal = intersectionPoint.normal;
-    if (isDebug)
-    {
-        recordLine("normal.x = %f\n", normal.x);
-        recordLine("normal.y = %f\n", normal.y);
-        recordLine("normal.z = %f\n", normal.z);
-    }
+
     // 入射ベクトル計算(光が当たる点からみた光源の位置であることに注意)
     Vector3 incident = lighting.direction;
 
@@ -178,12 +164,6 @@ FColor phongShading(
     diffuse.g = lighting.intensity.g * material.diffuse.g * normal.dot(incident);
     diffuse.b = lighting.intensity.b * material.diffuse.b * normal.dot(incident);
     diffuse.normalize();
-    if (isDebug)
-    {
-        recordLine("diffuse.r = %f\n", diffuse.r);
-        recordLine("diffuse.g = %f\n", diffuse.g);
-        recordLine("diffuse.b = %f\n", diffuse.b);
-    }
 
     // スペキュラー
     // 鏡面反射係数 * 光源強度 * 視線逆ベクトル・入射光の正反射ベクトル
@@ -196,12 +176,6 @@ FColor phongShading(
     specular.g = lighting.intensity.g * material.specular.g * cos_a;
     specular.b = lighting.intensity.b * material.specular.b * cos_a;
     specular.normalize();
-    if (isDebug)
-    {
-        recordLine("specular.r = %f\n", specular.r);
-        recordLine("specular.g = %f\n", specular.g);
-        recordLine("specular.b = %f\n", specular.b);
-    }
 
     // 視線逆ベクトルと正反射ベクトルの内積もしくは，
     // 物体面の法線ベクトルと入射ベクトルの内積が負数の場合，
@@ -219,14 +193,8 @@ FColor phongShading(
 // 先頭の要素（ポインタ）の位置を指しているのでダブルポインタ
 IntersectionResult *intersectionWithAll(Shape **geometry, int geometryNum, Ray *ray)
 {
-#ifdef MPI
-    double start = MPI_Wtime();
-#endif
     IntersectionResult *result = intersectionWithAll(geometry, geometryNum, ray, FLT_MAX, false);
-#ifdef MPI
-    double end = MPI_Wtime();
-    evaluateTime.intersectionTime += end - start;
-#endif
+
     return result;
 }
 
@@ -286,14 +254,8 @@ IntersectionResult *intersectionWithAll(
 
 FColor RayTrace(Scene *scene, Ray *ray)
 {
-#ifdef MPI
-    double startTime;
-    startTime = MPI_Wtime();
-#endif
     FColor raytraceColor = RayTraceRecursive(scene, ray, 1);
-#ifdef MPI
-    evaluateTime.raytraceTime = MPI_Wtime() - startTime;
-#endif
+
     return raytraceColor;
 }
 
@@ -559,35 +521,12 @@ void refraction(
     float cr = (1.f / 2.f) * (myPow(polarized_p, 2) + myPow(polarized_s, 2));
     float ct = 1.f - cr;
 
-    // 各変数の値を表示
-    // recordLine("=============================\n");
-    // recordLine("eta1 = %f\n", refractionIndex_1);
-    // recordLine("eta2 = %f\n", refractionIndex_2);
-    // recordLine("etaR = %f\n", refractionIndexDiv);
-
-    // recordLine("cosθ1 = %f\n", cos_1);
-    // recordLine("cosθ2 = %f\n", cos_2);
-
-    // recordLine("Ω = %f\n", omega);
-
-    // recordLine("polarized_P = %f\n", polarized_p);
-    // recordLine("polarized_S = %f\n", polarized_s);
-
-    // recordLine("cR = %f\n", cr);
-    // recordLine("cT = %f\n", ct);
-
-    // recordLine("=============================\n");
-
     FColor reflection = intersectionResult->shape->material.reflection;
 
     // 正反射方向の輝度を計算
     // 次の反射の輝度を取得
     FColor nextLuminance = RayTraceRecursive(scene, &specularReflectionRay, recursiveLevel + 1);
 
-    // recordLine("正反射光の放射輝度\n");
-    // recordLine("%d : nextLuminance.r = %f\n", recursiveLevel, nextLuminance.r);
-    // recordLine("%d : nextLuminance.g = %f\n", recursiveLevel, nextLuminance.g);
-    // recordLine("%d : nextLuminance.b = %f\n", recursiveLevel, nextLuminance.b);
     if (nextLuminance.r != FLT_MAX)
     {
         // 完全鏡面反射輝度(正反射)計算
@@ -595,8 +534,6 @@ void refraction(
         reflectionLuminance.r = nextLuminance.r;
         reflectionLuminance.g = nextLuminance.g;
         reflectionLuminance.b = nextLuminance.b;
-
-        recordLine("cR = %f\n", cr);
 
         // 最終放射輝度に加算
         luminance->r += reflection.r * cr * reflectionLuminance.r;
@@ -607,10 +544,6 @@ void refraction(
     // 屈折光の放射輝度計算
     // 次の反射の輝度を取得
     nextLuminance = RayTraceRecursive(scene, &refractionRay, recursiveLevel + 1);
-    // recordLine("屈折光の放射輝度\n");
-    // recordLine("%d : nextLuminance.r = %f\n", recursiveLevel, nextLuminance.r);
-    // recordLine("%d : nextLuminance.g = %f\n", recursiveLevel, nextLuminance.g);
-    // recordLine("%d : nextLuminance.b = %f\n", recursiveLevel, nextLuminance.b);
 
     if (nextLuminance.r != FLT_MAX)
     {
@@ -619,10 +552,6 @@ void refraction(
         refractionLuminance.r = nextLuminance.r;
         refractionLuminance.g = nextLuminance.g;
         refractionLuminance.b = nextLuminance.b;
-
-        // recordLine("refractionLuminance.r = %f\n", refractionLuminance.r);
-        // recordLine("refractionLuminance.g = %f\n", refractionLuminance.g);
-        // recordLine("refractionLuminance.b = %f\n", refractionLuminance.b);
 
         // 最終放射輝度に加算
         luminance->r += reflection.r * ct * refractionLuminance.r;
