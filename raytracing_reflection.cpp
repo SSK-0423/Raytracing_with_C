@@ -35,11 +35,11 @@ int main(int argc, char **argv)
     geometry[0]->material.useReflection = true;
     geometry[0]->material.reflection = FColor(1.f, 1.f, 1.f);
     geometry[1] = new Sphere(Vector3(0.5, -0.65, 2), 0.35f);
-    geometry[1]->material =
-        Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
-    // geometry[1]->material.diffuse = FColor(0.4f, 1.f, 0.4f);
-    geometry[1]->material.useReflection = true;
-    geometry[1]->material.reflection = FColor(1.f, 1.f, 1.f);
+    // geometry[1]->material =
+    //     Material(FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), FColor(0.f, 0.f, 0.f), 0.f);
+    geometry[1]->material.diffuse = FColor(0.4f, 1.f, 0.4f);
+    // geometry[1]->material.useReflection = true;
+    // geometry[1]->material.reflection = FColor(1.f, 1.f, 1.f);
     // geometry[1]->material.useRefraction = true;
     // geometry[1]->material.refractionIndex = 1.51;
 
