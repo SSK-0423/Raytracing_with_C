@@ -3,31 +3,29 @@
 #define GEOMETRY_NUM 7
 #define LIGHT_NUM 1
 #define EVALUATE_NUM 10
-#define SCALE 1024
+#define SCALE 128
 
 int main(int argc, char **argv)
 {
-    // 全ノードの処理結果の集計結果を格納する
-    FColor resultColors[SCALE][SCALE];
-    // 各ノードの処理結果を格納する
-    FColor myColors[SCALE][SCALE];
-    // 自分のノード番号
-    int myrank;
-    // ノード数
-    int nodeNum;
-
+#ifdef MPI
     // MPI初期化
     MPI_Status status;
+    printf("argv[0] = %s\n",argv[0]);
+    printf("argv[1] = %s\n",argv[1]);
 
     MPI_Init(&argc, &argv);
-    MPI_Comm_size(MPI_COMM_WORLD,&nodeNum);
-    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 
-    printf("ノード数: %d\n",nodeNum);
-    printf("自分のランク %d\n",myrank);
+
+    // 全ノードの処理結果の集計結果を格納する
+    Color resultColors[SCALE][SCALE];
+    // 各ノードの処理結果を格納する
+    Color myColors[SCALE][SCALE];
+    // 自分のノード番号
+    int myrank;
 
     evaluateTime.Init();
     evaluateTime.totalTime = MPI_Wtime();
+#endif
 
     // ログファイル初期化
     if (initLogFile("log.txt") == 1)
@@ -89,8 +87,9 @@ int main(int argc, char **argv)
     scene.ambientIntensity = FColor(0.1, 0.1, 0.1);
     scene.samplingNum = 20;
 
+#ifdef MPI
     evaluateTime.raytraceTime = MPI_Wtime();
-
+#endif
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める
     for (int y = 0; y < bitmap.height; y++)
@@ -99,8 +98,8 @@ int main(int argc, char **argv)
         {
             FColor luminance = FColor(0, 0, 0);
             // 4はノードの総数 これを取得できるようにしたい
-            int start = scene.samplingNum / nodeNum * myrank;
-            int end = start + scene.samplingNum / nodeNum;
+            int start = scene.samplingNum / 4 * myrank;
+            int end = start + scene.samplingNum / 4;
             for (int s = start; s < end; s++)
             {
                 float u = (float(x) + myRand());
@@ -109,49 +108,46 @@ int main(int argc, char **argv)
                 Ray ray = createRay(camera, u, v, bitmap.width, bitmap.height);
                 luminance = luminance + RayTrace(&scene, &ray);
             }
-            myColors[y][x] = luminance;
+            Color color;
+            color.r = luminance.r / (float)scene.samplingNum * 0xff;
+            color.g = luminance.g / (float)scene.samplingNum * 0xff;
+            color.b = luminance.b / (float)scene.samplingNum * 0xff;
+            drawDot(&bitmap, x, y, color);
+            myColors[y][x] = color;
+            myColors[0][0] = Color(0,0,0,0);
         }
     }
-
+#ifdef MPI
     MPI_Reduce(
         &myColors,
         &resultColors,
-        SCALE * SCALE * 3,
-        MPI_FLOAT,
+        SCALE * SCALE * 4,
+        MPI_UNSIGNED_CHAR,
         MPI_SUM,
         0,
         MPI_COMM_WORLD);
 
     evaluateTime.raytraceTime = MPI_Wtime() - evaluateTime.raytraceTime;
 
-    // 書き込み
+    Color color = resultColors[0][0];
     if(myrank == 0)
-    {
-        for (int y = 0; y < bitmap.height; y++)
-        {
-            for (int x = 0; x < bitmap.width; x++)
-            {
-                Color color;
-                color.r = resultColors[y][x].r / (float)scene.samplingNum * 0xff;
-                color.g = resultColors[y][x].g / (float)scene.samplingNum * 0xff;
-                color.b = resultColors[y][x].b / (float)scene.samplingNum * 0xff;
-                drawDot(&bitmap, x, y, color);
-            }
-        }
-    }
+        printf("resultColors[0][0] = (%d,%d,%d,%d)\n",color.r,color.g,color.b,color.a);
 
+#endif
     recordLine("演算子の個数%ld\n", operationCount);
 
+#ifdef MPI
     evaluateTime.encodePngTime = MPI_Wtime();
-
+#endif
     // PNGに変換してファイル保存
-    if (myrank == 0 && pngFileEncodeWrite(&bitmap, "result.png") == -1)
+    if (pngFileEncodeWrite(&bitmap, "result.png") == -1)
     {
         freeBitmapData(&bitmap);
         return -1;
     }
-
+#ifdef MPI
     evaluateTime.encodePngTime = MPI_Wtime() - evaluateTime.encodePngTime;
+#endif
 
     for (auto o : geometry)
     {
@@ -163,6 +159,7 @@ int main(int argc, char **argv)
         delete l;
     }
 
+#ifdef MPI
     evaluateTime.totalTime = MPI_Wtime() - evaluateTime.totalTime;
 
     printf("総実行時間: %.2f\n", evaluateTime.totalTime);
@@ -172,6 +169,7 @@ int main(int argc, char **argv)
     printf("------------------------------------\n");
 
     MPI_Finalize();
+#endif
 
     finalLogFile();
 
@@ -185,8 +183,4 @@ int main(int argc, char **argv)
     3. myColorに値代入
     4. MPI_Reduceで平均値計算
     5. 書き込み ←ここも並列化すると良い
-
-                    color.r = myColors[y][x].r / (float)(scene.samplingNum / 4) * 0xff;
-                color.g = myColors[y][x].g / (float)(scene.samplingNum / 4) * 0xff;
-                color.b = myColors[y][x].b / (float)(scene.samplingNum / 4) * 0xff;
 */

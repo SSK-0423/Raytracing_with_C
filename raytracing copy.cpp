@@ -7,6 +7,7 @@
 
 int main(int argc, char **argv)
 {
+#ifdef MPI
     // 全ノードの処理結果の集計結果を格納する
     FColor resultColors[SCALE][SCALE];
     // 各ノードの処理結果を格納する
@@ -28,6 +29,7 @@ int main(int argc, char **argv)
 
     evaluateTime.Init();
     evaluateTime.totalTime = MPI_Wtime();
+#endif
 
     // ログファイル初期化
     if (initLogFile("log.txt") == 1)
@@ -89,7 +91,9 @@ int main(int argc, char **argv)
     scene.ambientIntensity = FColor(0.1, 0.1, 0.1);
     scene.samplingNum = 20;
 
+#ifdef MPI
     evaluateTime.raytraceTime = MPI_Wtime();
+#endif
 
     // 視線方向で最も近い物体を探し，
     // その物体との交点位置とその点での法線ベクトルを求める
@@ -113,6 +117,7 @@ int main(int argc, char **argv)
         }
     }
 
+#ifdef MPI
     MPI_Reduce(
         &myColors,
         &resultColors,
@@ -123,6 +128,10 @@ int main(int argc, char **argv)
         MPI_COMM_WORLD);
 
     evaluateTime.raytraceTime = MPI_Wtime() - evaluateTime.raytraceTime;
+
+    // Color color = resultColors[0][63];
+    // if(myrank == 0)
+    //     printf("resultColors[0][0] = (%d,%d,%d,%d)\n",color.r,color.g,color.b,color.a);
 
     // 書き込み
     if(myrank == 0)
@@ -136,22 +145,31 @@ int main(int argc, char **argv)
                 color.g = resultColors[y][x].g / (float)scene.samplingNum * 0xff;
                 color.b = resultColors[y][x].b / (float)scene.samplingNum * 0xff;
                 drawDot(&bitmap, x, y, color);
+                // recordLine("rank = 0 : myColor[%d][%d] = (%4.2f,%4.2f,%4.2f)\n",y,x,myColors[y][x].r,myColors[y][x].g,myColors[y][x].b);
+                // recordLine("[y][x] = [%d][%d]\n",y,x);
+                // printf("[y][x] = [%d][%d]\n", y, x);
             }
         }
     }
 
+#endif
+
     recordLine("演算子の個数%ld\n", operationCount);
 
+#ifdef MPI
     evaluateTime.encodePngTime = MPI_Wtime();
+#endif
 
     // PNGに変換してファイル保存
-    if (myrank == 0 && pngFileEncodeWrite(&bitmap, "result.png") == -1)
+    if (pngFileEncodeWrite(&bitmap, "result.png") == -1)
     {
         freeBitmapData(&bitmap);
         return -1;
     }
 
+#ifdef MPI
     evaluateTime.encodePngTime = MPI_Wtime() - evaluateTime.encodePngTime;
+#endif
 
     for (auto o : geometry)
     {
@@ -163,6 +181,7 @@ int main(int argc, char **argv)
         delete l;
     }
 
+#ifdef MPI
     evaluateTime.totalTime = MPI_Wtime() - evaluateTime.totalTime;
 
     printf("総実行時間: %.2f\n", evaluateTime.totalTime);
@@ -172,6 +191,7 @@ int main(int argc, char **argv)
     printf("------------------------------------\n");
 
     MPI_Finalize();
+#endif
 
     finalLogFile();
 
