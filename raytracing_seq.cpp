@@ -17,9 +17,9 @@ int main(int argc, char **argv)
 
 
     // 全ノードの処理結果の集計結果を格納する
-    Color resultColors[SCALE][SCALE];
+    Color resultRadiance[SCALE][SCALE];
     // 各ノードの処理結果を格納する
-    Color myColors[SCALE][SCALE];
+    Color myRadiance[SCALE][SCALE];
     // 自分のノード番号
     int myrank;
 
@@ -113,14 +113,14 @@ int main(int argc, char **argv)
             color.g = luminance.g / (float)scene.samplingNum * 0xff;
             color.b = luminance.b / (float)scene.samplingNum * 0xff;
             drawDot(&bitmap, x, y, color);
-            myColors[y][x] = color;
-            myColors[0][0] = Color(0,0,0,0);
+            myRadiance[y][x] = color;
+            myRadiance[0][0] = Color(0,0,0,0);
         }
     }
 #ifdef MPI
     MPI_Reduce(
-        &myColors,
-        &resultColors,
+        &myRadiance,
+        &resultRadiance,
         SCALE * SCALE * 4,
         MPI_UNSIGNED_CHAR,
         MPI_SUM,
@@ -129,9 +129,9 @@ int main(int argc, char **argv)
 
     evaluateTime.raytraceTime = MPI_Wtime() - evaluateTime.raytraceTime;
 
-    Color color = resultColors[0][0];
+    Color color = resultRadiance[0][0];
     if(myrank == 0)
-        printf("resultColors[0][0] = (%d,%d,%d,%d)\n",color.r,color.g,color.b,color.a);
+        printf("resultRadiance[0][0] = (%d,%d,%d,%d)\n",color.r,color.g,color.b,color.a);
 
 #endif
     recordLine("演算子の個数%ld\n", operationCount);

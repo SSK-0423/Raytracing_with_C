@@ -3,15 +3,17 @@
 #define GEOMETRY_NUM 7
 #define LIGHT_NUM 1
 #define EVALUATE_NUM 10
-#define SCALE 1024
+#define SCALE 512
+
+// 全ノードの処理結果の集計結果を格納する
+volatile FColor resultRadiance[SCALE][SCALE];
+// 各ノードの処理結果を格納する
+FColor myRadiance[SCALE][SCALE];
 
 int main(int argc, char **argv)
 {
 #ifdef MPI
-    // 全ノードの処理結果の集計結果を格納する
-    FColor resultColors[SCALE][SCALE];
-    // 各ノードの処理結果を格納する
-    FColor myColors[SCALE][SCALE];
+
     // 自分のノード番号
     int myrank;
     // ノード数
@@ -21,11 +23,11 @@ int main(int argc, char **argv)
     MPI_Status status;
 
     MPI_Init(&argc, &argv);
-    MPI_Comm_size(MPI_COMM_WORLD,&nodeNum);
-    MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+    MPI_Comm_size(MPI_COMM_WORLD, &nodeNum);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
-    printf("ノード数: %d\n",nodeNum);
-    printf("自分のランク %d\n",myrank);
+    printf("ノード数: %d\n", nodeNum);
+    printf("自分のランク %d\n", myrank);
 
     evaluateTime.Init();
     evaluateTime.totalTime = MPI_Wtime();
@@ -102,9 +104,11 @@ int main(int argc, char **argv)
         for (int x = 0; x < bitmap.width; x++)
         {
             FColor luminance = FColor(0, 0, 0);
-            // 4はノードの総数 これを取得できるようにしたい
+
             int start = scene.samplingNum / nodeNum * myrank;
             int end = start + scene.samplingNum / nodeNum;
+            if (x == 0 && y == 0)
+                printf("rank = %d start = %d end = %d\n", myrank, start, end);
             for (int s = start; s < end; s++)
             {
                 float u = (float(x) + myRand());
@@ -113,14 +117,14 @@ int main(int argc, char **argv)
                 Ray ray = createRay(camera, u, v, bitmap.width, bitmap.height);
                 luminance = luminance + RayTrace(&scene, &ray);
             }
-            myColors[y][x] = luminance;
+            myRadiance[y][x] = luminance;
         }
     }
 
 #ifdef MPI
     MPI_Reduce(
-        &myColors,
-        &resultColors,
+        &myRadiance,
+        (void *)&resultRadiance,
         SCALE * SCALE * 3,
         MPI_FLOAT,
         MPI_SUM,
@@ -129,25 +133,19 @@ int main(int argc, char **argv)
 
     evaluateTime.raytraceTime = MPI_Wtime() - evaluateTime.raytraceTime;
 
-    // Color color = resultColors[0][63];
-    // if(myrank == 0)
-    //     printf("resultColors[0][0] = (%d,%d,%d,%d)\n",color.r,color.g,color.b,color.a);
-
     // 書き込み
-    if(myrank == 0)
+    if (myrank == 0)
     {
         for (int y = 0; y < bitmap.height; y++)
         {
             for (int x = 0; x < bitmap.width; x++)
             {
                 Color color;
-                color.r = resultColors[y][x].r / (float)scene.samplingNum * 0xff;
-                color.g = resultColors[y][x].g / (float)scene.samplingNum * 0xff;
-                color.b = resultColors[y][x].b / (float)scene.samplingNum * 0xff;
+                color.r = resultRadiance[y][x].r / (float)scene.samplingNum * 0xff;
+                color.g = resultRadiance[y][x].g / (float)scene.samplingNum * 0xff;
+                color.b = resultRadiance[y][x].b / (float)scene.samplingNum * 0xff;
                 drawDot(&bitmap, x, y, color);
-                // recordLine("rank = 0 : myColor[%d][%d] = (%4.2f,%4.2f,%4.2f)\n",y,x,myColors[y][x].r,myColors[y][x].g,myColors[y][x].b);
-                // recordLine("[y][x] = [%d][%d]\n",y,x);
-                // printf("[y][x] = [%d][%d]\n", y, x);
+                // recordLine("rank = 0 : resultRadiance[%d][%d] = (%4.2f,%4.2f,%4.2f)\n", y, x, resultRadiance[y][x].r, resultRadiance[y][x].g, resultRadiance[y][x].b);
             }
         }
     }
@@ -206,7 +204,7 @@ int main(int argc, char **argv)
     4. MPI_Reduceで平均値計算
     5. 書き込み ←ここも並列化すると良い
 
-                    color.r = myColors[y][x].r / (float)(scene.samplingNum / 4) * 0xff;
-                color.g = myColors[y][x].g / (float)(scene.samplingNum / 4) * 0xff;
-                color.b = myColors[y][x].b / (float)(scene.samplingNum / 4) * 0xff;
+                    color.r = myRadiance[y][x].r / (float)(scene.samplingNum / 4) * 0xff;
+                color.g = myRadiance[y][x].g / (float)(scene.samplingNum / 4) * 0xff;
+                color.b = myRadiance[y][x].b / (float)(scene.samplingNum / 4) * 0xff;
 */

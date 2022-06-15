@@ -3,7 +3,10 @@
 #define GEOMETRY_NUM 7
 #define LIGHT_NUM 1
 #define EVALUATE_NUM 10
-#define SCALE 1024
+#define SCALE 128
+
+// 全ノードの処理結果の集計結果を格納する
+static FColor *resultRadiance = new FColor[SCALE * SCALE];
 
 int main(int argc, char **argv)
 {
@@ -19,8 +22,6 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &nodeNum);
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
-    // 全ノードの処理結果の集計結果を格納する
-    FColor *resultRadiance = new FColor[SCALE * SCALE];
     // 各ノードの処理結果を格納する
     FColor *myRadiance = new FColor[SCALE * SCALE];
 
@@ -32,7 +33,7 @@ int main(int argc, char **argv)
         return -1;
 
     // ビットマップデータ
-    BitMapData bitmap(SCALE, SCALE, 3);
+    static BitMapData bitmap(SCALE, SCALE, 3);
     if (bitmap.allocation() == -1)
         return -1;
 
@@ -93,7 +94,6 @@ int main(int argc, char **argv)
     // その物体との交点位置とその点での法線ベクトルを求める
     for (int y = 0; y < bitmap.height; y++)
     {
-
         for (int x = 0; x < bitmap.width; x++)
         {
             FColor radiance = FColor(0, 0, 0);
@@ -109,16 +109,6 @@ int main(int argc, char **argv)
             }
             myRadiance[y * bitmap.width + x] = radiance;
         }
-        if (myrank == 0)
-        {
-            // fprintf(stderr, "\rRendering...");
-            // fprintf(stderr, "%2.0f%%", (float)(y * SCALE + SCALE) / (float)(SCALE * SCALE) * 100);
-        }
-    }
-
-    if (myrank == 0)
-    {
-        // fprintf(stderr, "\rRendering...100%%\n");
     }
 
     MPI_Reduce(
@@ -133,18 +123,21 @@ int main(int argc, char **argv)
     evaluateTime.raytraceTime = MPI_Wtime() - evaluateTime.raytraceTime;
 
     // 書き込み
-    if (myrank == 0)
+    int ys = bitmap.height / nodeNum * myrank;
+    int ye = bitmap.height / nodeNum * (myrank + 1);
+    
+    int xs = bitmap.width / nodeNum * myrank;
+    int xe = bitmap.width / nodeNum * (myrank + 1);
+
+    for (int y = ys; y < ye; y++)
     {
-        for (int y = 0; y < bitmap.height; y++)
+        for (int x = 0; x < bitmap.width; x++)
         {
-            for (int x = 0; x < bitmap.width; x++)
-            {
-                Color color;
-                color.r = resultRadiance[y * bitmap.height + x].r / (float)scene.samplingNum * 0xff;
-                color.g = resultRadiance[y * bitmap.height + x].g / (float)scene.samplingNum * 0xff;
-                color.b = resultRadiance[y * bitmap.height + x].b / (float)scene.samplingNum * 0xff;
-                drawDot(&bitmap, x, y, color);
-            }
+            Color color;
+            color.r = resultRadiance[y * bitmap.width + x].r / (float)scene.samplingNum * 0xff;
+            color.g = resultRadiance[y * bitmap.width + x].g / (float)scene.samplingNum * 0xff;
+            color.b = resultRadiance[y * bitmap.width + x].b / (float)scene.samplingNum * 0xff;
+            drawDot(&bitmap, x, y, color);
         }
     }
 
@@ -172,7 +165,6 @@ int main(int argc, char **argv)
     }
 
     delete[] myRadiance;
-    delete[] resultRadiance;
 
     evaluateTime.totalTime = MPI_Wtime() - evaluateTime.totalTime;
 
@@ -196,4 +188,8 @@ int main(int argc, char **argv)
     3. myColorに値代入
     4. MPI_Reduceで平均値計算
     5. 書き込み ←ここも並列化すると良い
+
+                    color.r = myRadiance[y][x].r / (float)(scene.samplingNum / 4) * 0xff;
+                color.g = myRadiance[y][x].g / (float)(scene.samplingNum / 4) * 0xff;
+                color.b = myRadiance[y][x].b / (float)(scene.samplingNum / 4) * 0xff;
 */
