@@ -1,16 +1,22 @@
 #include "raytracing_lib.hpp"
+#include <string.h>
 
 #define GEOMETRY_NUM 7
 #define LIGHT_NUM 1
-#define EVALUATE_NUM 10
-#define SCALE 1024
 
+/*
+    argv[1] : 画像サイズ
+    argv[2] : ログファイル名
+    argv[3] : 何回目の実行か
+*/
 int main(int argc, char **argv)
 {
     // 自分のノード番号
     int myrank;
     // ノード数
     int nodeNum;
+    // 画像サイズ
+    unsigned int imageSize = atoi(argv[1]);
 
     // MPI初期化
     MPI_Status status;
@@ -20,19 +26,31 @@ int main(int argc, char **argv)
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
 
     // 全ノードの処理結果の集計結果を格納する
-    FColor *resultRadiance = new FColor[SCALE * SCALE];
+    FColor *resultRadiance = new FColor[imageSize * imageSize];
     // 各ノードの処理結果を格納する
-    FColor *myRadiance = new FColor[SCALE * SCALE];
+    FColor *myRadiance = new FColor[imageSize * imageSize];
 
     evaluateTime.Init();
     evaluateTime.totalTime = MPI_Wtime();
 
+    // ログファイル名の決定
+    char fileName[128] = "";
+    if (argv[2] == nullptr)
+    {
+        strcat(fileName, "log.txt");
+    }
+    else
+    {
+        strcat(fileName, argv[1]);
+        strcat(fileName, argv[2]);
+    }
+
     // ログファイル初期化
-    if (initLogFile("log.txt") == 1)
+    if (initLogFile(fileName, "a") == 1)
         return -1;
 
     // ビットマップデータ
-    BitMapData bitmap(SCALE, SCALE, 3);
+    BitMapData bitmap(imageSize, imageSize, 3);
     if (bitmap.allocation() == -1)
         return -1;
 
@@ -93,7 +111,6 @@ int main(int argc, char **argv)
     // その物体との交点位置とその点での法線ベクトルを求める
     for (int y = 0; y < bitmap.height; y++)
     {
-
         for (int x = 0; x < bitmap.width; x++)
         {
             FColor radiance = FColor(0, 0, 0);
@@ -109,17 +126,20 @@ int main(int argc, char **argv)
             }
             myRadiance[y * bitmap.width + x] = radiance;
         }
+#ifdef PROGRESS
         if (myrank == 0)
         {
-            // fprintf(stderr, "\rRendering...");
-            // fprintf(stderr, "%2.0f%%", (float)(y * SCALE + SCALE) / (float)(SCALE * SCALE) * 100);
+            fprintf(stderr, "\rRendering...");
+            fprintf(stderr, "%2.0f%%", (float)(y * SCALE + SCALE) / (float)(SCALE * SCALE) * 100);
         }
+#endif
     }
-
+#ifdef PROGRESS
     if (myrank == 0)
     {
-        // fprintf(stderr, "\rRendering...100%%\n");
+        fprintf(stderr, "\rRendering...100%%\n");
     }
+#endif
 
     MPI_Reduce(
         myRadiance,
@@ -132,7 +152,9 @@ int main(int argc, char **argv)
 
     evaluateTime.raytraceTime = MPI_Wtime() - evaluateTime.raytraceTime;
 
-    // 書き込み
+    // PNG画像出力
+    evaluateTime.encodePngTime = MPI_Wtime();
+    
     if (myrank == 0)
     {
         for (int y = 0; y < bitmap.height; y++)
@@ -147,10 +169,6 @@ int main(int argc, char **argv)
             }
         }
     }
-
-    recordLine("演算子の個数%ld\n", operationCount);
-
-    evaluateTime.encodePngTime = MPI_Wtime();
 
     // PNGに変換してファイル保存
     if (myrank == 0 && pngFileEncodeWrite(&bitmap, "result.png") == -1)
@@ -176,11 +194,17 @@ int main(int argc, char **argv)
 
     evaluateTime.totalTime = MPI_Wtime() - evaluateTime.totalTime;
 
-    printf("総実行時間: %.2f\n", evaluateTime.totalTime);
-    printf("レイトレーシング時間: %.2f\n", evaluateTime.raytraceTime);
-    // printf("交差判定時間:%.2f\n", evaluateTime.intersectionTime);
-    printf("PNG出力時間: %.2f\n", evaluateTime.encodePngTime);
-    printf("------------------------------------\n");
+    if (myrank == 0)
+    {
+        recordLine("\n");
+        recordLine("---------------%d回目---------------\n", atoi(argv[3]));
+        recordLine("演算子の個数%ld\n", operationCount);
+        recordLine("総実行時間: %.2f\n", evaluateTime.totalTime);
+        recordLine("レイトレーシング時間: %.2f\n", evaluateTime.raytraceTime);
+        recordLine("PNG出力時間: %.2f\n", evaluateTime.encodePngTime);
+        recordLine("------------------------------------\n");
+        // printf("交差判定時間:%.2f\n", evaluateTime.intersectionTime);
+    }
 
     MPI_Finalize();
 

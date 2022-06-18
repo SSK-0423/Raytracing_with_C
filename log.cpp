@@ -3,9 +3,9 @@
 
 static FILE *logFile;
 
-int initLogFile(const char *filename)
+int initLogFile(const char *filename, const char* option = "W")
 {
-    logFile = fopen(filename, "w");
+    logFile = fopen(filename, option);
     if (logFile == NULL)
     {
         printf("ログファイル%sをオープンできませんでした\n", filename);

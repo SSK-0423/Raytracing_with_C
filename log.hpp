@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 // ログファイル生成
-int initLogFile(const char*);
+int initLogFile(const char*,const char*);
 
 // ログファイルに記録
 void recordLine(const char* format,...);
