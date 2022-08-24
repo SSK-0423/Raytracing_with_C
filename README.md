@@ -5,7 +5,6 @@ __並列処理の講義で実装した古典的レイトレーシング__
 - [x] シャドウイング
 - [x] 完全鏡面反射
 - [ ] 屈折
-- [ ] フォンの反射モデル⇨拡散反射
 ## レンダリング例
 - raytracing_sample1.cpp  
 ![raytracing_sample1](https://user-images.githubusercontent.com/83057130/169650604-9a6decba-0733-4633-ac67-71647f2fde8a.png)
